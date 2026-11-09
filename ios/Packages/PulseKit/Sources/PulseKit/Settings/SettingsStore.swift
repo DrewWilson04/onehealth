@@ -68,10 +68,10 @@ public final class SettingsStore {
         cloudKitContainerID = cloudKitContainer
         let schema = Schema([SettingRecord.self])
         var cloudOK = false
-        func make(_ name: String, cloud: ModelConfiguration.CloudKitDatabase) -> ModelContainer {
+        func make(_ name: String, cloud: ModelConfiguration.CloudKitDatabase, isCloud: Bool) -> ModelContainer {
             let config = ModelConfiguration(name, schema: schema, isStoredInMemoryOnly: inMemory, cloudKitDatabase: cloud)
             if let c = try? ModelContainer(for: schema, configurations: [config]) {
-                if case .none = cloud {} else { cloudOK = true }
+                if isCloud { cloudOK = true }
                 return c
             }
             // CloudKit unavailable (e.g. missing entitlement in a dev build) →
@@ -80,13 +80,13 @@ public final class SettingsStore {
             return try! ModelContainer(for: schema, configurations: [fallback])
         }
         if let id = cloudKitContainer, !id.isEmpty, !inMemory {
-            synced = make("SettingsSynced", cloud: .private(id))
+            synced = make("SettingsSynced", cloud: .private(id), isCloud: true)
         } else {
-            synced = make("SettingsSynced", cloud: .none)
+            synced = make("SettingsSynced", cloud: .none, isCloud: false)
         }
         isCloudBacked = cloudOK
         syncState = cloudOK ? .syncing : .local
-        local = make("SettingsLocal", cloud: .none)
+        local = make("SettingsLocal", cloud: .none, isCloud: false)
         reload()
         observeRemoteChanges()
     }

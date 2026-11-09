@@ -42,7 +42,7 @@ final class AppServices {
             // A corrupt cache is recoverable: everything can be re-read from HealthKit.
             healthContainer = try! HealthCache.makeContainer(inMemory: true)
         }
-        store = LocalStore(modelContainer: healthContainer)
+        store = HealthCache.makeStore(healthContainer)
         ingestionStatus = IngestionStatus()
         ingestion = IngestionEngine(provider: provider, store: store, status: ingestionStatus, calendar: calendar)
         let settingsStore = SettingsStore(cloudKitContainer: PulseKitConfig.iCloudContainer)

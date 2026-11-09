@@ -19,3 +19,4 @@ web/dist/
 web/dev-dist/
 web/coverage/
 *.log
+web/tsconfig.tsbuildinfo

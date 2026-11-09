@@ -92,8 +92,7 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(WorkoutStyle.name(info?.activityType ?? "other"))
         .task {
-            guard let hk = try? await services.provider.hkWorkout(id: workout.id),
-                  let pts = try? await services.provider.store.workoutRoute(for: hk) else { return }
+            guard let pts = try? await services.provider.route(forWorkoutID: workout.id) else { return }
             route = pts.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
         }
     }

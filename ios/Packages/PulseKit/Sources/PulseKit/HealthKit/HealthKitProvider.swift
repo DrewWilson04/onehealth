@@ -166,6 +166,12 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
         return (r.added.compactMap { normalizer.normalize($0, as: metric) }, r.deleted.map { $0.uuid.uuidString }, r.anchor)
     }
 
+    /// GPS route points for a workout (empty if none / not authorized).
+    public func route(forWorkoutID id: String) async throws -> [CLLocationLike] {
+        guard let w = try await hkWorkout(id: id) else { return [] }
+        return try await store.workoutRoute(for: w)
+    }
+
     public func earliestDate() -> Date {
         store.earliestPermittedSampleDate()
     }
