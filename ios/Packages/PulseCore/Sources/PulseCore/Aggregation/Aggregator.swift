@@ -32,7 +32,7 @@ public enum Aggregator {
             for (d, v) in bins { byDay[DayKey(d, calendar: cal), default: (0, false, [:])].sum += v }
             for s in segs {
                 let k = DayKey(s.start, calendar: cal)
-                byDay[k, default: (0, false, [:])].src[s.source.key, default: 0] += s.value
+                byDay[k, default: (0, false, [:])].src[s.source.attribution, default: 0] += s.value
                 if s.isEstimated { byDay[k]?.est = true }
             }
             return byDay.map { day, v in
@@ -49,7 +49,7 @@ public enum Aggregator {
                 let latest = chosen.max { $0.end < $1.end }!.value
                 return DailyAggregate(metric: metric.id, day: day, sum: vals.reduce(0, +), average: vals.reduce(0, +) / Double(vals.count),
                                       min: vals.min(), max: vals.max(), latest: latest, count: vals.count,
-                                      primarySource: chosen[0].source.key, sourcePolicy: policy,
+                                      primarySource: chosen[0].source.attribution, sourcePolicy: policy,
                                       isEstimated: chosen.contains(where: \.isEstimated))
             }.sorted { $0.day < $1.day }
 
@@ -58,7 +58,7 @@ public enum Aggregator {
                 return SleepMerger.nights(ofType, priority: priority, calendar: cal).map { n in
                     DailyAggregate(metric: .sleep, day: n.day, sum: n.asleepMinutes, average: n.efficiency.map { $0 * 100 },
                                    min: nil, max: n.inBedMinutes, latest: nil, count: 1,
-                                   primarySource: n.primarySource.key, sourcePolicy: policy, isEstimated: n.isEstimated)
+                                   primarySource: n.primarySource.attribution, sourcePolicy: policy, isEstimated: n.isEstimated)
                 }
             }
             // Mindful sessions → minutes; events/stand hours → counts. Overlaps
@@ -95,7 +95,7 @@ public enum Aggregator {
                 let energy = list.compactMap { WorkoutInfo($0)?.energyKcal }.reduce(0, +)
                 return DailyAggregate(metric: .workout, day: day, sum: list.reduce(0) { $0 + $1.value },
                                       average: energy > 0 ? energy : nil, count: list.count,
-                                      primarySource: list.first?.source.key, sourcePolicy: policy,
+                                      primarySource: list.first?.source.attribution, sourcePolicy: policy,
                                       isEstimated: list.contains(where: \.isEstimated))
             }.sorted { $0.day < $1.day }
         }

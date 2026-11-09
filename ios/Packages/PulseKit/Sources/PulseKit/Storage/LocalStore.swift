@@ -23,6 +23,11 @@ public enum HealthCache {
         }
         return try ModelContainer(for: schema, configurations: [config])
     }
+
+    /// Public factory (the @ModelActor-generated initializer isn't public).
+    public static func makeStore(_ container: ModelContainer) -> LocalStore {
+        LocalStore(modelContainer: container)
+    }
 }
 
 /// Background actor for all health-cache reads/writes. Never touch

@@ -8,6 +8,7 @@ enum AppTab: Hashable {
 
 struct RootView: View {
     @Environment(AppServices.self) private var services
+    @Environment(AIAvailability.self) private var ai
     @State private var onboarded = AppServices.shared.hasCompletedOnboarding
     @State private var tab: AppTab = .today
 
@@ -33,8 +34,11 @@ struct RootView: View {
             Tab("Log", systemImage: "plus.circle.fill", value: AppTab.log) {
                 NavigationStack { LogHomeView() }
             }
-            Tab("Insights", systemImage: "sparkles", value: AppTab.insights) {
-                NavigationStack { InsightsView() }
+            // AI insights are hidden entirely on devices without Apple Intelligence.
+            if ai.isAvailable {
+                Tab("Insights", systemImage: "sparkles", value: AppTab.insights) {
+                    NavigationStack { InsightsView() }
+                }
             }
             Tab("Challenges", systemImage: "trophy.fill", value: AppTab.challenges) {
                 NavigationStack { ChallengesHomeView() }

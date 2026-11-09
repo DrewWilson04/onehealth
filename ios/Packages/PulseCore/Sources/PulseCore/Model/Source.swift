@@ -10,6 +10,19 @@ public struct SourceRef: Hashable, Codable, Sendable {
     }
     /// Stable key used for priority lists and preferences.
     public var key: String { bundleId.isEmpty ? name : bundleId }
+
+    /// "bundleId|name" — stored on aggregates so badges can show the vendor
+    /// (Apple Watch and iPhone share the `com.apple.health.*` bundle prefix,
+    /// only the name tells them apart).
+    public var attribution: String { name.isEmpty ? bundleId : "\(bundleId)|\(name)" }
+
+    public init(attribution: String) {
+        if let i = attribution.firstIndex(of: "|") {
+            self.init(bundleId: String(attribution[..<i]), name: String(attribution[attribution.index(after: i)...]))
+        } else {
+            self.init(bundleId: attribution, name: "")
+        }
+    }
 }
 
 /// Hardware that recorded a sample, when known.

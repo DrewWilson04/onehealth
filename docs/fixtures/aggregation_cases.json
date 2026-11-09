@@ -1,0 +1,42 @@
+{
+  "description": "Aggregation, rollup, rolling-average, period-comparison and personal-best fixtures. `daily` rows give the metric's daily value (sum for steps, average for restingHeartRate). Consumed by iOS and web tests.",
+  "steps": {
+    "metric": "steps",
+    "today": "2024-03-13",
+    "daily": {
+      "2024-03-04": 8000, "2024-03-05": 10000, "2024-03-06": 6000, "2024-03-07": 12000, "2024-03-08": 9000, "2024-03-09": 15000, "2024-03-10": 4000,
+      "2024-03-11": 11000, "2024-03-12": 7000, "2024-03-13": 9000
+    },
+    "expectedWeekly": {"2024-03-04": {"sum": 64000, "average": 9142.857142857143, "count": 7}, "2024-03-11": {"sum": 27000, "average": 9000, "count": 3}},
+    "expectedMonthly": {"2024-03-01": {"sum": 91000, "count": 10}},
+    "expectedRolling3": {"2024-03-06": 8000, "2024-03-07": 9333.333333333334, "2024-03-13": 9000},
+    "expectedWeekComparison": {"current": 9000, "previous": 8000, "percentChange": 0.125, "currentDays": 3, "previousDays": 3},
+    "expectedBestDay": {"day": "2024-03-09", "value": 15000},
+    "expectedBestWeek": {"day": "2024-03-04", "value": 64000}
+  },
+  "rhr": {
+    "metric": "restingHeartRate",
+    "today": "2024-03-13",
+    "daily": {"2024-03-11": 58, "2024-03-12": 56, "2024-03-13": 60, "2024-03-05": 62},
+    "expectedWeekly": {"2024-03-04": {"average": 62, "count": 1}, "2024-03-11": {"average": 58, "count": 3}},
+    "expectedBestDay": {"day": "2024-03-12", "value": 56}
+  },
+  "rollingGaps": {
+    "description": "Missing days are skipped, not zero. window 7, minCount 3.",
+    "points": {"2024-03-01": 100, "2024-03-02": 200, "2024-03-05": 300, "2024-03-20": 50},
+    "window": 7,
+    "minCount": 3,
+    "expected": {"2024-03-05": 200}
+  },
+  "discreteDaily": {
+    "description": "Aggregator.daily for a discrete metric picks one source per day (most samples) and averages it.",
+    "timeZone": "UTC",
+    "samples": [
+      {"id": "a1", "type": "heartRate", "value": 60, "start": "2024-03-10T08:00:00Z", "end": "2024-03-10T08:00:00Z", "source": "watch"},
+      {"id": "a2", "type": "heartRate", "value": 70, "start": "2024-03-10T09:00:00Z", "end": "2024-03-10T09:00:00Z", "source": "watch"},
+      {"id": "a3", "type": "heartRate", "value": 80, "start": "2024-03-10T10:00:00Z", "end": "2024-03-10T10:00:00Z", "source": "watch"},
+      {"id": "b1", "type": "heartRate", "value": 100, "start": "2024-03-10T09:00:00Z", "end": "2024-03-10T09:00:00Z", "source": "whoop"}
+    ],
+    "expected": {"2024-03-10": {"average": 70, "min": 60, "max": 80, "latest": 80, "count": 3, "primarySource": "com.apple.health.9F1C"}}
+  }
+}

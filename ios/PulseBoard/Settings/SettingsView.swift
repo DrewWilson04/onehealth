@@ -5,11 +5,28 @@ import PulseKit
 struct SettingsView: View {
     @Environment(AppServices.self) private var services
     @Environment(IngestionStatus.self) private var status
+    @Environment(EntitlementManager.self) private var entitlements
+    @Environment(AIAvailability.self) private var ai
     @State private var confirmReset = false
 
     var body: some View {
         List {
+            Section {
+                NavigationLink { SubscriptionSettingsView() } label: {
+                    Label(entitlements.isPro ? "\(PulseKitConfig.appName) Pro" : "Upgrade to Pro", systemImage: "star.circle.fill")
+                }
+            }
+
+            Section("Personalize") {
+                NavigationLink { GoalsView() } label: { Label("Goals & streaks", systemImage: "target") }
+                NavigationLink { UnitsSettingsView() } label: { Label("Units", systemImage: "ruler") }
+                NavigationLink { SyncSettingsView() } label: { Label("iCloud sync", systemImage: "icloud") }
+            }
+
             Section("Data") {
+                NavigationLink { ExportView() } label: {
+                    Label("Export CSV / PDF", systemImage: "square.and.arrow.up")
+                }
                 NavigationLink { SourcesView() } label: {
                     Label("Sources & priority", systemImage: "square.stack.3d.up.fill")
                 }
@@ -32,6 +49,13 @@ struct SettingsView: View {
                 Label("Custom metrics are stored on this device only.", systemImage: "iphone")
             } header: {
                 Text("Privacy")
+            }
+
+            if !ai.isAvailable {
+                Section {
+                    Text("AI insights require an Apple Intelligence-capable device.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             }
 
             Section("About") {
@@ -95,5 +119,21 @@ enum PrivacyPolicy {
 
         Contact: privacy@example.com
         """
+    }
+}
+
+
+struct UnitsSettingsView: View {
+    @Environment(SettingsStore.self) private var settings
+    var body: some View {
+        Form {
+            Picker("Units", selection: Binding(get: { settings.preferences.unitSystem }, set: { v in settings.update { $0.unitSystem = v } })) {
+                Text("Automatic").tag(UserPreferences.UnitSystem.automatic)
+                Text("Metric").tag(UserPreferences.UnitSystem.metric)
+                Text("Imperial").tag(UserPreferences.UnitSystem.imperial)
+            }
+            .pickerStyle(.inline)
+        }
+        .navigationTitle("Units")
     }
 }

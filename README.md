@@ -13,7 +13,8 @@ The name is a placeholder. To rename the app, change `APP_NAME` in `ios/Config/A
   Packages/PulseCore   pure-Swift algorithms (normalize, dedup, aggregate, scores, stats) + tests
   Packages/PulseKit    Apple-framework adapters (HealthKit, SwiftData, CloudKit, StoreKit, …)
 /web     PWA companion (imports export.zip, IndexedDB, same scores)
-/docs    shared specs: schema, metrics, score formulas, challenge scoring, fixtures
+/docs    shared specs: schema, metrics, score formulas, insights, challenge scoring, fixtures
+/.github CI: PulseCore Swift tests, web tests + GitHub Pages deploy
 ```
 
 The algorithms in `PulseCore` and `web/src/core` are tested against the same JSON fixtures in `docs/fixtures`, which keeps iOS and web consistent.
@@ -57,37 +58,98 @@ Re-run `xcodegen` whenever you add or remove files or change `project.yml`.
 
 If automatic signing complains about the App Group or iCloud container, open **Signing & Capabilities** for each target. Click the refresh button next to the container, or create it at developer.apple.com → Identifiers.
 
+### iCloud / CloudKit (settings sync)
+- **What syncs.** Only non-health configuration syncs: preferences, dashboard layout, preferred sources, challenge setup, goals, and saved meal templates. The last two can be turned off in Settings → iCloud Sync.
+- **The guard.** `PulseCore/Model/CloudPolicy.swift` allow-lists the keys that may reach iCloud. Anything else is forced into the local store.
+- **Data that never syncs.** The health cache (`HealthCache`, SwiftData `cloudKitDatabase: .none`) and custom metrics never sync.
+- **Schema.** SwiftData creates the CloudKit schema automatically in the **Development** environment the first time a debug build syncs.
+  - Before TestFlight, open the [CloudKit Console](https://icloud.developer.apple.com) → your container → **Deploy Schema Changes** to Production. TestFlight and App Store builds use Production.
+- **Testing.** Sign into the same iCloud account on two devices. Change the dashboard layout or a goal on one, and it appears on the other within a minute or so, usually faster while both apps are in the foreground.
+- **Conflicts.** One record per item; the newest write wins, and duplicates created while offline are removed on import.
+
 ### Running tests
 - **Xcode:** select the `PulseBoardTests` scheme and press ⌘U. This runs the `PulseCoreTests` package tests.
 - **Command line (macOS):** `cd ios/Packages/PulseCore && swift test`
 - **Linux / CI:** `docker run --rm -v "$PWD":/repo -w /repo/ios/Packages/PulseCore swift:6.2 swift test`
 
-### StoreKit testing
-Covered in Milestone 7.
+### StoreKit testing (local)
+`ios/PulseBoard.storekit` defines one subscription group, **PulseBoard Pro**:
 
-### TestFlight
-Covered in Milestone 7 / release readiness.
+| Product ID | Price | Intro offer |
+|---|---|---|
+| `pulseboard.pro.monthly` | $2.99 / month | 1 month free |
+| `pulseboard.pro.yearly` | $29.99 / year | 1 month free |
+
+- **Scheme.** The scheme already points at the file (`project.yml` → `storeKitConfiguration`). If needed, check Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration.
+- **Test a purchase.** Run the app, open Settings → Upgrade to Pro → choose a plan, and purchase. No real money is charged.
+- **Transaction Manager.** Use Debug → StoreKit → Manage Transactions to refund, expire, or clear purchase history (clearing resets intro-offer eligibility).
+- **Fast renewals.** Editor → Subscription Renewal Rate → "Every 30 seconds" lets you watch renewals and expiry.
+- **Debug toggle.** Debug builds have Settings → Subscription → **Simulate Pro** for quick UI work.
+
+All gating goes through `EntitlementService` (PulseCore) and is implemented by `EntitlementManager` (PulseKit, StoreKit 2):
+- It uses `Transaction.currentEntitlements` and `Transaction.updates`.
+- Transactions are verified on-device; there is no receipt server.
+
+### App Store Connect setup (before TestFlight)
+1. **Create the app.** In App Store Connect → My Apps → **+**, use bundle ID `<prefix>.pulseboard`.
+2. **Create the subscriptions.** Go to Monetization → Subscriptions and create the group **PulseBoard Pro** with both products.
+   - The product IDs must match the table above, or change them in `AppConfig.xcconfig` and `PulseBoard.storekit`.
+   - Set the prices, and add an **Introductory Offer → Free → 1 month** to each.
+3. **Privacy.**
+   - Enter a hosted privacy-policy URL. A placeholder lives in `docs/privacy-policy.md` and is served by the web app at `/privacy.html`.
+   - Set `PRIVACY_POLICY_URL` in `AppConfig.xcconfig`.
+   - App Privacy questionnaire: **Data Not Collected**, because nothing leaves the device in this phase.
+4. **Paid Apps agreement.** Accept it in Business, otherwise products won't load in TestFlight.
+5. **CloudKit.** Deploy the CloudKit schema to Production (see above).
+
+### TestFlight upload
+1. In `AppConfig.xcconfig`, bump `CURRENT_PROJECT_VERSION`. Bump `MARKETING_VERSION` for new versions.
+2. In Xcode, select **Any iOS Device (arm64)** → Product → **Archive**.
+3. In the Organizer, choose **Distribute App → App Store Connect → Upload**. Keep automatic signing.
+4. In App Store Connect → TestFlight, wait for processing.
+   - Answer export compliance. `ITSAppUsesNonExemptEncryption = NO` is already set.
+   - Add an **Internal** testing group, or an **External** group (which needs Beta App Review) and invite friends by email or public link.
+5. Testers install **TestFlight**, accept, and install.
+   - Subscriptions in TestFlight use the sandbox and are free.
+   - Renewals are accelerated: a 1-month period lasts about 5 minutes.
+
+Before submitting to the **App Store**, set `CHALLENGES_PREVIEW = NO` in `Config/Release.xcconfig`. Mock challenge participants are for TestFlight only.
 
 ---
 
 ## Web
-See [`web/README.md`](web/README.md) (Milestone 12).
+Quick start:
+```sh
+cd web && npm ci && npm run dev
+```
+
+- Import an Apple Health `export.zip`. It is processed entirely in the browser and nothing is uploaded.
+- Deploy as static files to Cloudflare Pages or GitHub Pages; there's a ready-made workflow in `.github/workflows/web.yml`.
+- Full details are in [`web/README.md`](web/README.md).
+
+## Tests & CI
+| Suite | Command | What it covers |
+|---|---|---|
+| PulseCore (Swift) | `cd ios/Packages/PulseCore && swift test` | Normalizer, dedup (multi-source overlap), aggregation and trends, streaks, derived scores and gap handling, Activity Score, insights stats engine, CSV export, CloudKit key policy, entitlement matrix |
+| Web (TypeScript) | `cd web && npm test` | The same shared fixtures (parity with iOS), ZIP/ZIP64 reader, streaming `export.xml` importer, bounded memory on a 144 MB export |
+
+CI runs both suites (`.github/workflows/pulsecore.yml` and `web.yml`). The shared expected values live in `docs/fixtures/*.json`.
 
 ---
 
 ## Milestones
 1. ✅ HealthKit ingestion, schema, backfill, multi-source dedup
-2. Core dashboard and charts
-3. Manual entry with HealthKit write-back
-4. Goals, streaks, widgets
-5. CloudKit settings sync
-6. Derived scores and gap handling
-7. StoreKit 2 and paywall
-8. CSV/PDF export
-9. Insights stats engine + Apple Intelligence layer
-10. Challenge abstractions + mock UI
-11. Apple Watch app + complications
-12. Web importer, dashboard, static deploy
+2. ✅ Core dashboard and charts
+3. ✅ Manual entry with HealthKit write-back
+4. ✅ Goals, streaks, widgets
+5. ✅ CloudKit settings sync
+6. ✅ Derived scores and gap handling
+7. ✅ StoreKit 2 and paywall
+8. ✅ CSV/PDF export
+9. ✅ Insights stats engine + Apple Intelligence layer
+10. ✅ Challenge abstractions + mock UI
+11. ✅ Apple Watch app + complications
+12. ✅ Web importer, dashboard, static deploy
 
 ## Deviations from the original spec (Apple rules or technical limits)
 

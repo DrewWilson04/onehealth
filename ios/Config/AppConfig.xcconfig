@@ -17,10 +17,15 @@ APP_BUNDLE_ID = $(BUNDLE_ID_PREFIX).pulseboard
 APP_GROUP = group.$(BUNDLE_ID_PREFIX).pulseboard
 ICLOUD_CONTAINER = iCloud.$(BUNDLE_ID_PREFIX).pulseboard
 
-// StoreKit product identifiers (must match App Store Connect + PulseBoard.storekit).
-PRODUCT_ID_MONTHLY = $(APP_BUNDLE_ID).pro.monthly
-PRODUCT_ID_YEARLY = $(APP_BUNDLE_ID).pro.yearly
+// StoreKit product identifiers. Must match App Store Connect AND PulseBoard.storekit
+// (kept independent of the bundle ID so renaming the app needs no StoreKit changes).
+PRODUCT_ID_MONTHLY = pulseboard.pro.monthly
+PRODUCT_ID_YEARLY = pulseboard.pro.yearly
 SUBSCRIPTION_GROUP_ID = 21580001
+
+// Public privacy policy page (App Store Connect requires one). The web app
+// serves a placeholder at /privacy.html. Note: '//' must be escaped in xcconfig.
+PRIVACY_POLICY_URL = https:/$()/example.com/pulseboard/privacy
 
 MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1

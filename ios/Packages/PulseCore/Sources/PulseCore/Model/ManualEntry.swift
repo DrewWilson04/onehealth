@@ -101,3 +101,20 @@ public struct CustomMetricDefinition: Codable, Sendable, Hashable, Identifiable 
     }
     public var metricID: MetricID { .custom(id) }
 }
+
+public extension CustomMetricDefinition {
+    /// A synthetic MetricType so custom metrics flow through the same
+    /// aggregation, trends and goals code. Never written to HealthKit.
+    var metricType: MetricType {
+        MetricType(id: metricID, displayName: name, unit: .count,
+                   kind: aggregation == "sum" ? .cumulative : .discrete,
+                   dailyStatistic: aggregation == "sum" ? .sum : (aggregation == "latest" ? .latest : .average),
+                   section: .body, healthKitIdentifier: nil, symbol: symbol)
+    }
+
+    func sample(value: Double, date: Date) -> Sample {
+        Sample(id: UUID().uuidString, type: metricID, value: value, unit: .count, start: date, end: date,
+               source: SourceRef(bundleId: "local", name: "This device"), isManual: true,
+               metadata: ["unitLabel": unitLabel])
+    }
+}

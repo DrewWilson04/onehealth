@@ -22,6 +22,15 @@ public enum PulseKitConfig {
     public static var backfillTaskIdentifier: String { "\(bundleIdPrefix).pulseboard.backfill" }
     public static var refreshTaskIdentifier: String { "\(bundleIdPrefix).pulseboard.refresh" }
 
+    /// Public privacy policy URL (required for App Store Connect + paywall).
+    /// Replace with your hosted page (e.g. the web app's /privacy.html).
+    public static var privacyPolicyURL: URL {
+        URL(string: string("PBPrivacyPolicyURL")).flatMap { $0.scheme == nil ? nil : $0 } ?? URL(string: "https://example.com/pulseboard/privacy")!
+    }
+
+    /// Set by the AI layer at launch (Milestone 9); used for paywall copy.
+    nonisolated(unsafe) public static var aiSupportedHint = false
+
     /// Call once at launch so PulseCore uses the configured brand/bundle.
     public static func bootstrap() {
         AppBrandName.value = appName

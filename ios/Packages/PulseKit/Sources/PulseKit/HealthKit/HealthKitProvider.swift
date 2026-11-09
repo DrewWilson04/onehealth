@@ -96,20 +96,21 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
         let period: DailyAggregate.Period = hourly ? .hour : .day
 
         if m.kind == .cumulative {
-            var opts: HKStatisticsOptions = [.cumulativeSum]
-            if case .preferred = policy { opts.insert(.separateBySource) }
+            // `.separateBySource` keeps the merged `sumQuantity()` (Apple Health
+            // priority) and also lets us attribute the day ("via Garmin").
+            let opts: HKStatisticsOptions = [.cumulativeSum, .separateBySource]
             let coll = try await store.statisticsCollection(of: qt, predicate: pred, options: opts, anchor: anchor, interval: comps)
             var out: [DailyAggregate] = []
             coll.enumerateStatistics(from: interval.start, to: interval.end) { stats, _ in
                 var total = stats.sumQuantity()?.doubleValue(for: unit)
                 var primary = stats.sources?.max(by: { a, b in
                     (stats.sumQuantity(for: a)?.doubleValue(for: unit) ?? 0) < (stats.sumQuantity(for: b)?.doubleValue(for: unit) ?? 0)
-                })?.bundleIdentifier
+                }).map { SourceRef(bundleId: $0.bundleIdentifier, name: $0.name).attribution }
                 if case .preferred(let key) = policy,
                    let src = stats.sources?.first(where: { $0.bundleIdentifier == key || $0.name == key }),
                    let v = stats.sumQuantity(for: src)?.doubleValue(for: unit) {
                     total = v
-                    primary = src.bundleIdentifier
+                    primary = SourceRef(bundleId: src.bundleIdentifier, name: src.name).attribution
                 }
                 guard let total else { return }
                 let day = DayKey(stats.startDate, calendar: calendar)
@@ -143,7 +144,7 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
                     min: stats.minimumQuantity(for: pick).map { $0.doubleValue(for: unit) * scale },
                     max: stats.maximumQuantity(for: pick).map { $0.doubleValue(for: unit) * scale },
                     latest: stats.mostRecentQuantity(for: pick).map { $0.doubleValue(for: unit) * scale },
-                    count: 1, primarySource: pick.bundleIdentifier, sourcePolicy: policy.key))
+                    count: 1, primarySource: SourceRef(bundleId: pick.bundleIdentifier, name: pick.name).attribution, sourcePolicy: policy.key))
             }
             return out
         }
@@ -163,6 +164,12 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
         let pred = interval.map { HKQuery.predicateForSamples(withStart: $0.start, end: $0.end, options: []) }
         let r = try await store.anchoredChanges(of: type, predicate: pred, anchor: anchor, limit: limit)
         return (r.added.compactMap { normalizer.normalize($0, as: metric) }, r.deleted.map { $0.uuid.uuidString }, r.anchor)
+    }
+
+    /// GPS route points for a workout (empty if none / not authorized).
+    public func route(forWorkoutID id: String) async throws -> [CLLocationLike] {
+        guard let w = try await hkWorkout(id: id) else { return [] }
+        return try await store.workoutRoute(for: w)
     }
 
     public func earliestDate() -> Date {
@@ -195,5 +202,53 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
                 standGoal: s.standHoursGoal?.doubleValue(for: .count()) ?? s.appleStandHoursGoal.doubleValue(for: .count()))
         }
         return out
+    }
+}
+
+// MARK: - Inputs for derived scores
+
+extension HealthKitProvider {
+    /// Minute-resolution heart rate for an interval (one source per minute is
+    /// not needed here: HealthKit's discrete average across simultaneous
+    /// sources is fine for zone time).
+    public func heartRateSeries(_ interval: DateInterval, calendar: Calendar, minutes: Int = 1) async throws -> [HRPoint] {
+        let type = HKQuantityType(.heartRate)
+        let pred = HKQuery.predicateForSamples(withStart: interval.start, end: interval.end, options: [])
+        let coll = try await store.statisticsCollection(of: type, predicate: pred, options: [.discreteAverage],
+                                                        anchor: calendar.startOfDay(for: interval.start),
+                                                        interval: DateComponents(minute: minutes))
+        let unit = HKUnit.count().unitDivided(by: .minute())
+        var out: [HRPoint] = []
+        coll.enumerateStatistics(from: interval.start, to: interval.end) { s, _ in
+            if let v = s.averageQuantity()?.doubleValue(for: unit) { out.append(HRPoint(time: s.startDate, bpm: v)) }
+        }
+        return out
+    }
+
+    /// Step totals in fixed buckets (default 15 min).
+    public func stepBuckets(_ interval: DateInterval, calendar: Calendar, minutes: Int = 15) async throws -> [(Date, Double)] {
+        let pred = HKQuery.predicateForSamples(withStart: interval.start, end: interval.end, options: [])
+        let coll = try await store.statisticsCollection(of: HKQuantityType(.stepCount), predicate: pred, options: [.cumulativeSum],
+                                                        anchor: calendar.startOfDay(for: interval.start),
+                                                        interval: DateComponents(minute: minutes))
+        var out: [(Date, Double)] = []
+        coll.enumerateStatistics(from: interval.start, to: interval.end) { s, _ in
+            if let v = s.sumQuantity()?.doubleValue(for: .count()) { out.append((s.startDate, v)) }
+        }
+        return out
+    }
+
+    public func biologicalSex() -> BiologicalSex {
+        switch (try? store.biologicalSex())?.biologicalSex {
+        case .female: return .female
+        case .male: return .male
+        case .other: return .other
+        default: return .unknown
+        }
+    }
+
+    public func age(on date: Date = Date()) -> Double? {
+        guard let dob = dateOfBirth(), let d = Calendar(identifier: .gregorian).date(from: dob) else { return nil }
+        return date.timeIntervalSince(d) / (365.25 * 86_400)
     }
 }
