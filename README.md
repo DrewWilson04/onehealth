@@ -129,7 +129,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 5. ✅ CloudKit settings sync
 6. ✅ Derived scores and gap handling
 7. ✅ StoreKit 2 and paywall
-8. CSV/PDF export
+8. ✅ CSV/PDF export
 9. Insights stats engine + Apple Intelligence layer
 10. Challenge abstractions + mock UI
 11. Apple Watch app + complications

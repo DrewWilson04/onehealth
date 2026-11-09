@@ -23,6 +23,9 @@ struct SettingsView: View {
             }
 
             Section("Data") {
+                NavigationLink { ExportView() } label: {
+                    Label("Export CSV / PDF", systemImage: "square.and.arrow.up")
+                }
                 NavigationLink { SourcesView() } label: {
                     Label("Sources & priority", systemImage: "square.stack.3d.up.fill")
                 }

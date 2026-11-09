@@ -1,0 +1,28 @@
+{
+  "description": "CSV export fixtures (RFC 4180, CRLF line endings, '.' decimals, trailing zeros trimmed).",
+  "dailySummary": {
+    "metrics": ["steps", "restingHeartRate", "sleep"],
+    "from": "2024-03-10",
+    "to": "2024-03-12",
+    "rows": [
+      {"metric": "steps", "day": "2024-03-10", "sum": 8123},
+      {"metric": "steps", "day": "2024-03-12", "sum": 10500.5},
+      {"metric": "restingHeartRate", "day": "2024-03-10", "average": 55.25},
+      {"metric": "restingHeartRate", "day": "2024-03-11", "average": 57, "isEstimated": true},
+      {"metric": "sleep", "day": "2024-03-11", "sum": 432}
+    ],
+    "expected": "date,Steps,Resting Heart Rate (bpm),Resting Heart Rate estimated,Sleep (min)\r\n2024-03-10,8123,55.25,,\r\n2024-03-11,,57,yes,432\r\n2024-03-12,10500.5,,,\r\n"
+  },
+  "escaping": [
+    {"in": "plain", "out": "plain"},
+    {"in": "Oats, banana", "out": "\"Oats, banana\""},
+    {"in": "6\" sub", "out": "\"6\"\" sub\""},
+    {"in": "line\nbreak", "out": "\"line\nbreak\""}
+  ],
+  "numbers": [
+    {"in": 1.5, "out": "1.5"},
+    {"in": 2.0, "out": "2"},
+    {"in": 0.126, "out": "0.13"},
+    {"in": -0.001, "out": "0"}
+  ]
+}
