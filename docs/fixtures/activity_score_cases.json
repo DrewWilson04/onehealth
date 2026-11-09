@@ -1,0 +1,15 @@
+{
+  "description": "Device-agnostic Activity Score fixtures (see docs/challenges.md). Inputs are already competition-eligible (no manual / estimated data).",
+  "cases": [
+    {"name": "apple watch typical day", "inputs": {"steps": 9000, "exerciseMinutes": 35, "zoneMinutes": {"1": 20, "2": 25, "3": 10}, "sleepMinutes": 450},
+     "expected": {"steps": 18, "activeMinutes": 11.67, "intensity": 10.42, "sleep": 15, "total": 55.09}},
+    {"name": "garmin user, no exercise minutes (zones only)", "inputs": {"steps": 9000, "zoneMinutes": {"1": 20, "2": 25, "3": 10}, "sleepMinutes": 450},
+     "expected": {"steps": 18, "activeMinutes": 11.67, "intensity": 10.42, "sleep": 15, "total": 55.09}},
+    {"name": "phone only: steps + workout duration, no HR", "inputs": {"steps": 12000, "workoutMinutes": 40, "sleepMinutes": 380},
+     "expected": {"steps": 24, "activeMinutes": 0, "intensity": 8.33, "sleep": 7, "total": 39.33}},
+    {"name": "caps prevent domination", "inputs": {"steps": 60000, "exerciseMinutes": 400, "zoneMinutes": {"4": 200, "5": 100}, "sleepMinutes": 720},
+     "expected": {"steps": 30, "activeMinutes": 30, "intensity": 25, "sleep": 0, "total": 85}},
+    {"name": "empty day", "inputs": {},
+     "expected": {"steps": 0, "activeMinutes": 0, "intensity": 0, "sleep": 0, "total": 0}}
+  ]
+}

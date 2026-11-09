@@ -24,6 +24,8 @@ final class AppServices {
     let insights: InsightsService
     let phraser = InsightPhraser()
     let ai = AIAvailability()
+    let challenges: MockChallengeService
+    let challengeData: ChallengeDataSource
     let calendar: Calendar
     /// Today's scores (observed by the dashboard).
     var todayScores: [ScoreKind: ScoreResult] = [:]
@@ -43,11 +45,25 @@ final class AppServices {
         store = LocalStore(modelContainer: healthContainer)
         ingestionStatus = IngestionStatus()
         ingestion = IngestionEngine(provider: provider, store: store, status: ingestionStatus, calendar: calendar)
-        settings = SettingsStore(cloudKitContainer: PulseKitConfig.iCloudContainer)
+        let settingsStore = SettingsStore(cloudKitContainer: PulseKitConfig.iCloudContainer)
+        settings = settingsStore
         entitlements = EntitlementManager()
         writer = HealthWriter(store: provider.store)
         scoreService = ScoreService(provider: provider, store: store, calendar: calendar)
         insights = InsightsService(store: store, scores: scoreService, calendar: calendar)
+        challengeData = ChallengeDataSource(provider: provider, store: store, calendar: calendar)
+        // Challenge configs (memberships, custom challenges) sync as settings;
+        // submitted scores are never persisted to iCloud.
+        // TODO(server-sync): replace MockChallengeService with ServerChallengeService.
+        var mockState = settingsStore.challengeConfig(MockChallengeService.State.self, id: "state") ?? .init()
+        mockState.submitted = []
+        let cal = calendar
+        let settingsRef = settingsStore
+        challenges = MockChallengeService(state: mockState, today: { DayKey(Date(), calendar: cal) }, persist: { state in
+            var s = state
+            s.submitted = []
+            Task { @MainActor in settingsRef.saveChallengeConfig(s, id: "state") }
+        })
 
         let settings = self.settings
         let ingestion = self.ingestion
@@ -117,7 +133,24 @@ final class AppServices {
             guard let r = todayScores[k] else { return nil }
             return WidgetSnapshot.Score(kind: k.rawValue, value: r.value, label: r.label, isEstimated: r.isEstimated)
         }
-        await WidgetSnapshotWriter.write(services: self, scores: widgetScores)
+        await challengeData.invalidate(days)
+        await WidgetSnapshotWriter.write(services: self, scores: widgetScores, challenge: await topChallengeStanding())
+    }
+
+    /// Best-ranked joined, active challenge (for widgets and the watch).
+    func topChallengeStanding() async -> WidgetSnapshot.ChallengeStanding? {
+        let today = DayKey.today(calendar)
+        guard let joined = try? await challenges.joined() else { return nil }
+        var best: WidgetSnapshot.ChallengeStanding?
+        for c in joined where c.isActive(on: today) {
+            let daily = await challengeData.dailyValues(c, today: today)
+            guard let lb = try? await challenges.leaderboard(for: c, myDaily: daily, today: today),
+                  let me = lb.first(where: \.isCurrentUser) else { continue }
+            if best == nil || me.rank < best!.rank {
+                best = .init(title: c.title, rank: me.rank, participants: lb.count, score: me.score)
+            }
+        }
+        return best
     }
 
     func refreshScores(force: Bool = false) async {

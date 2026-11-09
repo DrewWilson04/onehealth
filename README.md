@@ -131,7 +131,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 7. ✅ StoreKit 2 and paywall
 8. ✅ CSV/PDF export
 9. ✅ Insights stats engine + Apple Intelligence layer
-10. Challenge abstractions + mock UI
+10. ✅ Challenge abstractions + mock UI
 11. Apple Watch app + complications
 12. Web importer, dashboard, static deploy
 
