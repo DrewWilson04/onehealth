@@ -9,6 +9,11 @@ struct SettingsView: View {
 
     var body: some View {
         List {
+            Section("Personalize") {
+                NavigationLink { GoalsView() } label: { Label("Goals & streaks", systemImage: "target") }
+                NavigationLink { UnitsSettingsView() } label: { Label("Units", systemImage: "ruler") }
+            }
+
             Section("Data") {
                 NavigationLink { SourcesView() } label: {
                     Label("Sources & priority", systemImage: "square.stack.3d.up.fill")
@@ -95,5 +100,21 @@ enum PrivacyPolicy {
 
         Contact: privacy@example.com
         """
+    }
+}
+
+
+struct UnitsSettingsView: View {
+    @Environment(SettingsStore.self) private var settings
+    var body: some View {
+        Form {
+            Picker("Units", selection: Binding(get: { settings.preferences.unitSystem }, set: { v in settings.update { $0.unitSystem = v } })) {
+                Text("Automatic").tag(UserPreferences.UnitSystem.automatic)
+                Text("Metric").tag(UserPreferences.UnitSystem.metric)
+                Text("Imperial").tag(UserPreferences.UnitSystem.imperial)
+            }
+            .pickerStyle(.inline)
+        }
+        .navigationTitle("Units")
     }
 }

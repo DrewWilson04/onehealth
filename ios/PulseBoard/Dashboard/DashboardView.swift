@@ -7,9 +7,16 @@ struct DashboardView: View {
     @Environment(AppServices.self) private var services
     @Environment(IngestionStatus.self) private var status
     @Environment(SettingsStore.self) private var settings
+    @Environment(EntitlementManager.self) private var entitlements
     @State private var model = DashboardModel()
+    @State private var goals = GoalsModel()
+    @State private var editing = false
+    @State private var showPaywall = false
 
-    private var layout: DashboardLayout { settings.dashboardLayout }
+    /// Free users get the default layout; the custom grid is Pro.
+    private var layout: DashboardLayout {
+        entitlements.isEnabled(.customWidgetGrid) ? settings.dashboardLayout : .default
+    }
 
     var body: some View {
         ScrollView {
@@ -40,11 +47,20 @@ struct DashboardView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Today")
+        .toolbar {
+            Button {
+                if entitlements.isEnabled(.customWidgetGrid) { editing = true } else { showPaywall = true }
+            } label: {
+                Label("Edit dashboard", systemImage: "square.grid.3x3.square")
+            }
+        }
+        .sheet(isPresented: $editing) { NavigationStack { DashboardEditView() } }
+        .sheet(isPresented: $showPaywall) { PaywallView(highlight: .customWidgetGrid) }
         .refreshable {
             await services.ingestion.refreshAll()
             await load()
         }
-        .task(id: status.dataRevision) { await load() }
+        .task(id: "\(status.dataRevision)-\(settings.revision)") { await load() }
         .task { await model.loadAccess(services: services) }
     }
 
@@ -54,6 +70,7 @@ struct DashboardView: View {
             return nil
         }
         await model.load(services: services, metricIDs: ids)
+        await goals.load(services: services)
     }
 
     @ViewBuilder
@@ -70,6 +87,9 @@ struct DashboardView: View {
             RingsCardView(rings: model.rings)
         case .sleepNight:
             NavigationLink { SleepDetailView() } label: { SleepNightCardView(night: model.lastNight) }
+                .buttonStyle(.plain)
+        case .goals:
+            NavigationLink { GoalsView() } label: { GoalsCardView(rows: goals.rows) }
                 .buttonStyle(.plain)
         default:
             EmptyView()

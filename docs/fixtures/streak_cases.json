@@ -1,0 +1,40 @@
+{
+  "description": "Goal streak fixtures. `daily` maps day → measured value (estimated values are never included). Shared by iOS and web tests.",
+  "cases": [
+    {
+      "name": "daily steps, today not yet met (in progress)",
+      "goal": {"metric": "steps", "target": 8000, "period": "day", "direction": "atLeast"},
+      "today": "2024-03-13",
+      "daily": {"2024-03-06": 9000, "2024-03-07": 2000, "2024-03-08": 8500, "2024-03-09": 8000, "2024-03-10": 12000, "2024-03-11": 9000, "2024-03-12": 8100, "2024-03-13": 3000},
+      "expected": {"current": 5, "longest": 5, "metCurrentPeriod": false, "recent": [false, true, true, true, true, true, false]}
+    },
+    {
+      "name": "daily steps, today met extends streak",
+      "goal": {"metric": "steps", "target": 8000, "period": "day", "direction": "atLeast"},
+      "today": "2024-03-13",
+      "daily": {"2024-03-11": 9000, "2024-03-12": 8100, "2024-03-13": 8000},
+      "expected": {"current": 3, "longest": 3, "metCurrentPeriod": true}
+    },
+    {
+      "name": "missing day breaks streak, longest from earlier run",
+      "goal": {"metric": "steps", "target": 8000, "period": "day", "direction": "atLeast"},
+      "today": "2024-03-13",
+      "daily": {"2024-03-01": 9000, "2024-03-02": 9000, "2024-03-03": 9000, "2024-03-04": 9000, "2024-03-12": 9000},
+      "expected": {"current": 1, "longest": 4, "metCurrentPeriod": false}
+    },
+    {
+      "name": "at-most caffeine goal",
+      "goal": {"metric": "caffeine", "target": 400, "period": "day", "direction": "atMost"},
+      "today": "2024-03-13",
+      "daily": {"2024-03-10": 500, "2024-03-11": 200, "2024-03-12": 380, "2024-03-13": 100},
+      "expected": {"current": 3, "longest": 3, "metCurrentPeriod": true}
+    },
+    {
+      "name": "weekly exercise total",
+      "goal": {"metric": "exerciseTime", "target": 150, "period": "week", "direction": "atLeast"},
+      "today": "2024-03-13",
+      "daily": {"2024-02-26": 60, "2024-02-28": 100, "2024-03-04": 50, "2024-03-06": 50, "2024-03-08": 60, "2024-03-11": 30},
+      "expected": {"current": 2, "longest": 2, "metCurrentPeriod": false}
+    }
+  ]
+}

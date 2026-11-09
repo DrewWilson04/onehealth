@@ -95,7 +95,7 @@ final class AppServices {
     /// Hook for everything that depends on cached data: derived scores
     /// (Milestone 6), widget snapshot (Milestone 4), watch sync (Milestone 11).
     func afterDataChange(days: Set<DayKey> = [], metrics: Set<MetricID> = []) async {
-        ingestionStatus.dataRevision += 0 // observers already bumped; keep hook explicit
+        await WidgetSnapshotWriter.write(services: self)
     }
 
     /// Changing a metric's preferred source recomputes its history.
