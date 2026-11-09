@@ -12,6 +12,7 @@ struct SettingsView: View {
             Section("Personalize") {
                 NavigationLink { GoalsView() } label: { Label("Goals & streaks", systemImage: "target") }
                 NavigationLink { UnitsSettingsView() } label: { Label("Units", systemImage: "ruler") }
+                NavigationLink { SyncSettingsView() } label: { Label("iCloud sync", systemImage: "icloud") }
             }
 
             Section("Data") {

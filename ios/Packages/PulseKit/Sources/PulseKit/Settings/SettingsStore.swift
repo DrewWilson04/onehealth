@@ -7,10 +7,17 @@ import UIKit
 #endif
 
 /// What may sync to iCloud. Goals and meal templates are a 5.1.3 gray area
-/// (configuration, not health records) — flip these to keep them local-only.
+/// (configuration, not health records). Users can turn them off in
+/// Settings → iCloud Sync; the choice is per device (UserDefaults).
 public enum SettingsSync {
-    public static var syncGoals = true
-    public static var syncMealTemplates = true
+    public static var syncGoals: Bool {
+        get { UserDefaults.standard.object(forKey: "sync.goals") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "sync.goals") }
+    }
+    public static var syncMealTemplates: Bool {
+        get { UserDefaults.standard.object(forKey: "sync.meals") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "sync.meals") }
+    }
 }
 
 /// Settings, goals, widget layouts, meal templates, preferred sources and
@@ -37,6 +44,8 @@ public final class SettingsStore {
     let synced: ModelContainer
     let local: ModelContainer
     private let deviceName: String
+    public let cloudKitContainerID: String?
+    public private(set) var isCloudBacked = false
 
     // Observable, decoded values.
     public private(set) var preferences = UserPreferences()
@@ -56,21 +65,27 @@ public final class SettingsStore {
         #else
         deviceName = "Apple Watch"
         #endif
+        cloudKitContainerID = cloudKitContainer
         let schema = Schema([SettingRecord.self])
+        var cloudOK = false
         func make(_ name: String, cloud: ModelConfiguration.CloudKitDatabase) -> ModelContainer {
             let config = ModelConfiguration(name, schema: schema, isStoredInMemoryOnly: inMemory, cloudKitDatabase: cloud)
-            if let c = try? ModelContainer(for: schema, configurations: [config]) { return c }
-            // CloudKit unavailable (e.g. no iCloud account / simulator without
-            // entitlement) → fall back to a local store; the app keeps working.
+            if let c = try? ModelContainer(for: schema, configurations: [config]) {
+                if case .none = cloud {} else { cloudOK = true }
+                return c
+            }
+            // CloudKit unavailable (e.g. missing entitlement in a dev build) →
+            // fall back to a local store; the app keeps working.
             let fallback = ModelConfiguration(name, schema: schema, isStoredInMemoryOnly: inMemory, cloudKitDatabase: .none)
             return try! ModelContainer(for: schema, configurations: [fallback])
         }
         if let id = cloudKitContainer, !id.isEmpty, !inMemory {
             synced = make("SettingsSynced", cloud: .private(id))
-            syncState = .syncing
         } else {
             synced = make("SettingsSynced", cloud: .none)
         }
+        isCloudBacked = cloudOK
+        syncState = cloudOK ? .syncing : .local
         local = make("SettingsLocal", cloud: .none)
         reload()
         observeRemoteChanges()
@@ -78,10 +93,27 @@ public final class SettingsStore {
 
     // MARK: Generic KV
 
+    /// Every write is checked against `CloudPolicy`: anything not allow-listed
+    /// as non-health configuration goes to the local-only store.
     private func container(for key: String) -> ModelContainer {
-        if key.hasPrefix(Keys.goalPrefix) && !SettingsSync.syncGoals { return local }
-        if key.hasPrefix(Keys.mealPrefix) && !SettingsSync.syncMealTemplates { return local }
-        return synced
+        CloudPolicy.isAllowedInCloud(key, syncGoals: SettingsSync.syncGoals, syncMealTemplates: SettingsSync.syncMealTemplates)
+            ? synced : local
+    }
+
+    /// Moves records between the synced and local stores after the user
+    /// changes what syncs (e.g. turns off goal sync → goals leave iCloud).
+    public func applySyncPolicy() {
+        for (from, to) in [(synced, local), (local, synced)] {
+            let ctx = from.mainContext
+            let all = (try? ctx.fetch(FetchDescriptor<SettingRecord>())) ?? []
+            for r in all where container(for: r.key) === to {
+                to.mainContext.insert(SettingRecord(key: r.key, json: r.json, deviceName: r.deviceName))
+                ctx.delete(r)
+            }
+            try? ctx.save()
+            try? to.mainContext.save()
+        }
+        reload()
     }
 
     private func records(_ ctx: ModelContext, key: String) -> [SettingRecord] {

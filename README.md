@@ -57,6 +57,15 @@ Re-run `xcodegen` whenever you add or remove files or change `project.yml`.
 
 If automatic signing complains about the App Group or iCloud container, open **Signing & Capabilities** for each target. Click the refresh button next to the container, or create it at developer.apple.com → Identifiers.
 
+### iCloud / CloudKit (settings sync)
+- **What syncs.** Only non-health configuration syncs: preferences, dashboard layout, preferred sources, challenge setup, goals, and saved meal templates. The last two can be turned off in Settings → iCloud Sync.
+- **The guard.** `PulseCore/Model/CloudPolicy.swift` allow-lists the keys that may reach iCloud. Anything else is forced into the local store.
+- **Data that never syncs.** The health cache (`HealthCache`, SwiftData `cloudKitDatabase: .none`) and custom metrics never sync.
+- **Schema.** SwiftData creates the CloudKit schema automatically in the **Development** environment the first time a debug build syncs.
+  - Before TestFlight, open the [CloudKit Console](https://icloud.developer.apple.com) → your container → **Deploy Schema Changes** to Production. TestFlight and App Store builds use Production.
+- **Testing.** Sign into the same iCloud account on two devices. Change the dashboard layout or a goal on one, and it appears on the other within a minute or so, usually faster while both apps are in the foreground.
+- **Conflicts.** One record per item; the newest write wins, and duplicates created while offline are removed on import.
+
 ### Running tests
 - **Xcode:** select the `PulseBoardTests` scheme and press ⌘U. This runs the `PulseCoreTests` package tests.
 - **Command line (macOS):** `cd ios/Packages/PulseCore && swift test`
@@ -80,7 +89,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 2. ✅ Core dashboard and charts
 3. ✅ Manual entry with HealthKit write-back
 4. ✅ Goals, streaks, widgets
-5. CloudKit settings sync
+5. ✅ CloudKit settings sync
 6. Derived scores and gap handling
 7. StoreKit 2 and paywall
 8. CSV/PDF export
