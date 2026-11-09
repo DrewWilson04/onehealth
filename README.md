@@ -90,7 +90,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 3. ✅ Manual entry with HealthKit write-back
 4. ✅ Goals, streaks, widgets
 5. ✅ CloudKit settings sync
-6. Derived scores and gap handling
+6. ✅ Derived scores and gap handling
 7. StoreKit 2 and paywall
 8. CSV/PDF export
 9. Insights stats engine + Apple Intelligence layer

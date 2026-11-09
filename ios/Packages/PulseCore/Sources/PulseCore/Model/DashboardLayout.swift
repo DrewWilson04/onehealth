@@ -58,6 +58,8 @@ public struct DashboardLayout: Codable, Sendable, Hashable {
         DashboardCard(id: "rings", kind: .rings, size: .medium),
         DashboardCard(id: "readiness", kind: .score(.readiness)),
         DashboardCard(id: "sleepScore", kind: .score(.sleep)),
+        DashboardCard(id: "strain", kind: .score(.strain)),
+        DashboardCard(id: "energy", kind: .score(.energy)),
         DashboardCard(id: "steps", kind: .metric(.steps)),
         DashboardCard(id: "activeEnergy", kind: .metric(.activeEnergy)),
         DashboardCard(id: "sleepNight", kind: .sleepNight, size: .medium),

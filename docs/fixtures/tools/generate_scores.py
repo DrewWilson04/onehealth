@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""Generates docs/fixtures/scores_cases.json inputs (deterministic).
+
+Expected values are recorded from the reference implementation (PulseCore)
+with `RECORD_FIXTURES=1 swift test --filter ScoreFixtureTests` and merged by
+`merge_expected.py`; the web implementation must reproduce them.
+"""
+import json, math, datetime as dt, os
+
+UTC = dt.timezone.utc
+def iso(d): return d.astimezone(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+def day(d): return d.strftime('%Y-%m-%d')
+
+TODAY = dt.datetime(2024, 3, 20, tzinfo=UTC)
+
+def series(days, f):
+    return {day(TODAY - dt.timedelta(days=k)): round(f(k), 2) for k in range(1, days + 1)}
+
+def nights(count, asleep_h=7.5, stages=True, bed_jitter_min=lambda k: (k % 3 - 1) * 10, include_today=True):
+    out = []
+    for k in range(0 if include_today else 1, count + 1):
+        wake_day = TODAY - dt.timedelta(days=k)
+        start = wake_day - dt.timedelta(hours=1) + dt.timedelta(minutes=bed_jitter_min(k))  # 23:00 prev day
+        total = asleep_h * 60
+        t = start
+        if stages:
+            plan = [(3, 0.30), (4, 0.18), (3, 0.17), (5, 0.12), (2, 0.03), (3, 0.10), (5, 0.10)]
+        else:
+            plan = [(1, 1.0)]
+        for stage, frac in plan:
+            dur = dt.timedelta(minutes=total * frac)
+            out.append([iso(t), iso(t + dur), stage])
+            t += dur
+    return out
+
+def hr_day(run=True, rest=58):
+    pts = []
+    t = TODAY + dt.timedelta(hours=7)
+    end = TODAY + dt.timedelta(hours=21)
+    while t < end:
+        h = t.hour
+        bpm = rest + 12 + (8 if 9 <= h < 18 else 0) + (5 * math.sin(t.minute / 60 * 2 * math.pi))
+        pts.append([iso(t), round(bpm, 1)])
+        t += dt.timedelta(minutes=10)
+    if run:
+        t = TODAY + dt.timedelta(hours=18)
+        for i in range(90):  # 45 min, every 30 s
+            bpm = 120 + min(35, i * 1.2)
+            pts.append([iso(t + dt.timedelta(seconds=30 * i)), round(bpm, 1)])
+    pts.sort()
+    return pts
+
+def steps_day():
+    out = []
+    t = TODAY + dt.timedelta(hours=7)
+    while t < TODAY + dt.timedelta(hours=21):
+        v = 400 if 8 <= t.hour < 9 or 12 <= t.hour < 13 else 80
+        if 18 <= t.hour < 19: v = 1500
+        out.append([iso(t), v])
+        t += dt.timedelta(minutes=15)
+    return out
+
+base = dict(day=day(TODAY), timeZone='UTC', sleepGoalMinutes=480, age=35, sex='male', now=iso(TODAY + dt.timedelta(hours=21)))
+
+cases = []
+# 1. Typical day near baseline.
+cases.append(dict(base, name='typical day near baseline',
+    hrv={'com.apple.health.watch': dict(series(30, lambda k: 50 + (3 if k % 2 else -3)), **{day(TODAY): 51})},
+    restingHR=dict(series(30, lambda k: 56 + (1 if k % 2 else -1)), **{day(TODAY): 56}),
+    sleepSamples=nights(8), heartRate=hr_day(), steps=steps_day(),
+    workouts=[[iso(TODAY + dt.timedelta(hours=18)), iso(TODAY + dt.timedelta(hours=18, minutes=45))]],
+    loadHistory=series(28, lambda k: 90 + (k % 4) * 10), observedMaxHR=182))
+# 2. Poor recovery: low HRV, high RHR, short sleep.
+cases.append(dict(base, name='poor recovery',
+    hrv={'com.apple.health.watch': dict(series(30, lambda k: 50 + (3 if k % 2 else -3)), **{day(TODAY): 36})},
+    restingHR=dict(series(30, lambda k: 56 + (1 if k % 2 else -1)), **{day(TODAY): 63}),
+    sleepSamples=nights(8, asleep_h=7.5)[7:] + nights(0, asleep_h=5.0),
+    heartRate=hr_day(run=False, rest=63), steps=steps_day(), workouts=[], loadHistory=series(28, lambda k: 60), observedMaxHR=182))
+# 3. New user: 5 days only.
+cases.append(dict(base, name='new user, not enough baseline',
+    hrv={'com.apple.health.watch': dict(series(5, lambda k: 50), **{day(TODAY): 50})},
+    restingHR=dict(series(5, lambda k: 56), **{day(TODAY): 56}),
+    sleepSamples=nights(2), heartRate=[], steps=[], workouts=[], loadHistory={}, observedMaxHR=None))
+# 4. Watch not worn last night: no HRV today, sleep missing → estimated HRV, no sleep.
+cases.append(dict(base, name='no HRV last night (short gap filled)',
+    hrv={'com.apple.health.watch': series(30, lambda k: 50 + (3 if k % 2 else -3))},
+    restingHR=dict(series(30, lambda k: 56 + (1 if k % 2 else -1)), **{day(TODAY): 57}),
+    sleepSamples=[s for s in nights(8) if s[1] < iso(TODAY - dt.timedelta(hours=3))],
+    heartRate=hr_day(run=False), steps=steps_day(), workouts=[], loadHistory=series(28, lambda k: 80), observedMaxHR=182))
+# 5. iPhone-only sleep (no stages), Oura-style HRV source chosen by coverage.
+cases.append(dict(base, name='no sleep stages, two HRV sources',
+    hrv={'com.apple.health.watch': series(8, lambda k: 45),
+         'com.ouraring.oura': dict(series(30, lambda k: 70 + (5 if k % 3 == 0 else 0)), **{day(TODAY): 72})},
+    restingHR=dict(series(30, lambda k: 54), **{day(TODAY): 54}),
+    sleepSamples=nights(8, stages=False, asleep_h=8.0), heartRate=hr_day(rest=54), steps=steps_day(), workouts=[],
+    loadHistory=series(10, lambda k: 70), observedMaxHR=None))
+
+out = {
+  'description': 'Derived-score fixtures (Readiness, Sleep Score, Strain, Energy). Inputs are generated by tools/generate_scores.py; expected values are recorded from the reference implementation and must be reproduced by web/src/core.',
+  'tolerance': 0.05,
+  'cases': cases,
+}
+path = os.path.join(os.path.dirname(__file__), '..', 'scores_cases.json')
+existing = {}
+if os.path.exists(path):
+    for c in json.load(open(path)).get('cases', []):
+        if 'expected' in c: existing[c['name']] = c['expected']
+for c in cases:
+    if c['name'] in existing: c['expected'] = existing[c['name']]
+json.dump(out, open(path, 'w'), indent=1)
+print('wrote', len(cases), 'cases')

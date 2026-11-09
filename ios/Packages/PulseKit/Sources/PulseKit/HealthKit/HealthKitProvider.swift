@@ -198,3 +198,51 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
         return out
     }
 }
+
+// MARK: - Inputs for derived scores
+
+extension HealthKitProvider {
+    /// Minute-resolution heart rate for an interval (one source per minute is
+    /// not needed here: HealthKit's discrete average across simultaneous
+    /// sources is fine for zone time).
+    public func heartRateSeries(_ interval: DateInterval, calendar: Calendar, minutes: Int = 1) async throws -> [HRPoint] {
+        let type = HKQuantityType(.heartRate)
+        let pred = HKQuery.predicateForSamples(withStart: interval.start, end: interval.end, options: [])
+        let coll = try await store.statisticsCollection(of: type, predicate: pred, options: [.discreteAverage],
+                                                        anchor: calendar.startOfDay(for: interval.start),
+                                                        interval: DateComponents(minute: minutes))
+        let unit = HKUnit.count().unitDivided(by: .minute())
+        var out: [HRPoint] = []
+        coll.enumerateStatistics(from: interval.start, to: interval.end) { s, _ in
+            if let v = s.averageQuantity()?.doubleValue(for: unit) { out.append(HRPoint(time: s.startDate, bpm: v)) }
+        }
+        return out
+    }
+
+    /// Step totals in fixed buckets (default 15 min).
+    public func stepBuckets(_ interval: DateInterval, calendar: Calendar, minutes: Int = 15) async throws -> [(Date, Double)] {
+        let pred = HKQuery.predicateForSamples(withStart: interval.start, end: interval.end, options: [])
+        let coll = try await store.statisticsCollection(of: HKQuantityType(.stepCount), predicate: pred, options: [.cumulativeSum],
+                                                        anchor: calendar.startOfDay(for: interval.start),
+                                                        interval: DateComponents(minute: minutes))
+        var out: [(Date, Double)] = []
+        coll.enumerateStatistics(from: interval.start, to: interval.end) { s, _ in
+            if let v = s.sumQuantity()?.doubleValue(for: .count()) { out.append((s.startDate, v)) }
+        }
+        return out
+    }
+
+    public func biologicalSex() -> BiologicalSex {
+        switch (try? store.biologicalSex())?.biologicalSex {
+        case .female: return .female
+        case .male: return .male
+        case .other: return .other
+        default: return .unknown
+        }
+    }
+
+    public func age(on date: Date = Date()) -> Double? {
+        guard let dob = dateOfBirth(), let d = Calendar(identifier: .gregorian).date(from: dob) else { return nil }
+        return date.timeIntervalSince(d) / (365.25 * 86_400)
+    }
+}

@@ -20,7 +20,10 @@ final class AppServices {
     let settings: SettingsStore
     let entitlements: EntitlementManager
     let writer: HealthWriter
+    let scoreService: ScoreService
     let calendar: Calendar
+    /// Today's scores (observed by the dashboard).
+    var todayScores: [ScoreKind: ScoreResult] = [:]
 
     private var observersStarted = false
 
@@ -40,6 +43,7 @@ final class AppServices {
         settings = SettingsStore(cloudKitContainer: PulseKitConfig.iCloudContainer)
         entitlements = EntitlementManager()
         writer = HealthWriter(store: provider.store)
+        scoreService = ScoreService(provider: provider, store: store, calendar: calendar)
 
         let settings = self.settings
         let ingestion = self.ingestion
@@ -95,7 +99,24 @@ final class AppServices {
     /// Hook for everything that depends on cached data: derived scores
     /// (Milestone 6), widget snapshot (Milestone 4), watch sync (Milestone 11).
     func afterDataChange(days: Set<DayKey> = [], metrics: Set<MetricID> = []) async {
-        await WidgetSnapshotWriter.write(services: self)
+        let scoreInputs: Set<MetricID> = [.hrv, .restingHeartRate, .sleep, .heartRate, .steps, .workout]
+        let today = DayKey.today(calendar)
+        if !days.isEmpty && (metrics.isEmpty || !metrics.isDisjoint(with: scoreInputs)) {
+            // Sleep/HRV changes affect the following day's scores too.
+            await scoreService.invalidate(days.union(days.map { $0.addingDays(1) }))
+        }
+        await refreshScores(force: days.contains(today) || metrics.isEmpty)
+        let widgetScores = [ScoreKind.readiness, .sleep, .strain, .energy].compactMap { k -> WidgetSnapshot.Score? in
+            guard let r = todayScores[k] else { return nil }
+            return WidgetSnapshot.Score(kind: k.rawValue, value: r.value, label: r.label, isEstimated: r.isEstimated)
+        }
+        await WidgetSnapshotWriter.write(services: self, scores: widgetScores)
+    }
+
+    func refreshScores(force: Bool = false) async {
+        await scoreService.configure(preferredSources: settings.preferredSources, priority: settings.sourcePriority,
+                                     sleepGoalMinutes: settings.preferences.sleepGoalMinutes)
+        todayScores = await scoreService.scores(for: DayKey.today(calendar), force: force)
     }
 
     /// Changing a metric's preferred source recomputes its history.

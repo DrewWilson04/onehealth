@@ -71,6 +71,7 @@ struct DashboardView: View {
         }
         await model.load(services: services, metricIDs: ids)
         await goals.load(services: services)
+        if services.todayScores.isEmpty { await services.refreshScores() }
     }
 
     @ViewBuilder
@@ -91,6 +92,16 @@ struct DashboardView: View {
         case .goals:
             NavigationLink { GoalsView() } label: { GoalsCardView(rows: goals.rows) }
                 .buttonStyle(.plain)
+        case .score(let kind):
+            let locked = (kind == .strain && !entitlements.isEnabled(.strainScore)) || (kind == .energy && !entitlements.isEnabled(.energyScore))
+            if locked {
+                Button { showPaywall = true } label: { ScoreCardView(kind: kind, result: nil, locked: true) }.buttonStyle(.plain)
+            } else {
+                NavigationLink { ScoreDetailView(kind: kind) } label: {
+                    ScoreCardView(kind: kind, result: services.todayScores[kind], locked: false)
+                }
+                .buttonStyle(.plain)
+            }
         default:
             EmptyView()
         }
