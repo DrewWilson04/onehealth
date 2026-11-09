@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(AppServices.self) private var services
     @Environment(IngestionStatus.self) private var status
     @Environment(EntitlementManager.self) private var entitlements
+    @Environment(AIAvailability.self) private var ai
     @State private var confirmReset = false
 
     var body: some View {
@@ -48,6 +49,13 @@ struct SettingsView: View {
                 Label("Custom metrics are stored on this device only.", systemImage: "iphone")
             } header: {
                 Text("Privacy")
+            }
+
+            if !ai.isAvailable {
+                Section {
+                    Text("AI insights require an Apple Intelligence-capable device.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             }
 
             Section("About") {

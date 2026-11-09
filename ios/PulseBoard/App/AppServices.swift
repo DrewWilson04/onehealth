@@ -21,6 +21,9 @@ final class AppServices {
     let entitlements: EntitlementManager
     let writer: HealthWriter
     let scoreService: ScoreService
+    let insights: InsightsService
+    let phraser = InsightPhraser()
+    let ai = AIAvailability()
     let calendar: Calendar
     /// Today's scores (observed by the dashboard).
     var todayScores: [ScoreKind: ScoreResult] = [:]
@@ -44,6 +47,7 @@ final class AppServices {
         entitlements = EntitlementManager()
         writer = HealthWriter(store: provider.store)
         scoreService = ScoreService(provider: provider, store: store, calendar: calendar)
+        insights = InsightsService(store: store, scores: scoreService, calendar: calendar)
 
         let settings = self.settings
         let ingestion = self.ingestion
@@ -83,6 +87,8 @@ final class AppServices {
     }
 
     func didBecomeActive() {
+        // Apple Intelligence can be turned on (or finish downloading) at any time.
+        ai.refresh()
         guard hasCompletedOnboarding else { return }
         Task {
             await ingestion.configure(preferredSources: settings.preferredSources, priority: settings.sourcePriority)
@@ -106,6 +112,7 @@ final class AppServices {
             await scoreService.invalidate(days.union(days.map { $0.addingDays(1) }))
         }
         await refreshScores(force: days.contains(today) || metrics.isEmpty)
+        if !days.isEmpty { await insights.invalidate() }
         let widgetScores = [ScoreKind.readiness, .sleep, .strain, .energy].compactMap { k -> WidgetSnapshot.Score? in
             guard let r = todayScores[k] else { return nil }
             return WidgetSnapshot.Score(kind: k.rawValue, value: r.value, label: r.label, isEstimated: r.isEstimated)

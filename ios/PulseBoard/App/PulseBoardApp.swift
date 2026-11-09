@@ -14,6 +14,7 @@ struct PulseBoardApp: App {
                 .environment(AppServices.shared.ingestionStatus)
                 .environment(AppServices.shared.settings)
                 .environment(AppServices.shared.entitlements)
+                .environment(AppServices.shared.ai)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { AppServices.shared.didBecomeActive() }

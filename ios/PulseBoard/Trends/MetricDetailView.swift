@@ -12,6 +12,7 @@ struct MetricDetailView: View {
     @State private var showRolling = true
     @State private var showPaywall = false
     @State private var selected: TrendPoint?
+    @State private var notes: [Finding] = []
 
     init(metric: MetricType) {
         self.metric = metric
@@ -36,6 +37,15 @@ struct MetricDetailView: View {
                 chart.frame(height: 240)
                 if model.range == .week || model.range == .month {
                     Toggle("7-day average", isOn: $showRolling).font(.subheadline)
+                }
+            }
+
+            if !notes.isEmpty {
+                Section("Notable") {
+                    ForEach(notes) { n in
+                        Label(n.text, systemImage: n.kind == .anomaly ? "exclamationmark.circle" : "chart.line.uptrend.xyaxis")
+                            .font(.subheadline)
+                    }
                 }
             }
 
@@ -71,6 +81,11 @@ struct MetricDetailView: View {
         .navigationTitle(metric.displayName)
         .tint(accent)
         .task(id: "\(model.range.rawValue)-\(status.dataRevision)") { await model.load(services: services) }
+        .task(id: status.dataRevision) {
+            let key = metric.id == .sleep ? "sleepMinutes" : metric.id.rawValue
+            notes = await services.insights.findings(priority: services.settings.sourcePriority)
+                .filter { ($0.kind == .anomaly || $0.kind == .trendChange) && $0.outcome == key }
+        }
         .sheet(isPresented: $showPaywall) { PaywallView(highlight: .fullHistoryTrends) }
     }
 
