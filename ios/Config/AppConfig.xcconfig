@@ -1,0 +1,26 @@
+// ─────────────────────────────────────────────────────────────────────────
+// Single place to rename the app or change identifiers.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Display name everywhere (home screen, usage strings, paywall, widgets).
+APP_NAME = PulseBoard
+
+// Your reverse-DNS prefix. Bundle IDs become $(BUNDLE_ID_PREFIX).pulseboard[.widgets|.watchkitapp|...]
+BUNDLE_ID_PREFIX = com.example
+
+// Your Apple Developer Team ID (Xcode → Settings → Accounts). Required for
+// HealthKit/CloudKit/App Groups on device.
+TEAM_ID =
+
+// Derived identifiers (change only if you know why).
+APP_BUNDLE_ID = $(BUNDLE_ID_PREFIX).pulseboard
+APP_GROUP = group.$(BUNDLE_ID_PREFIX).pulseboard
+ICLOUD_CONTAINER = iCloud.$(BUNDLE_ID_PREFIX).pulseboard
+
+// StoreKit product identifiers (must match App Store Connect + PulseBoard.storekit).
+PRODUCT_ID_MONTHLY = $(APP_BUNDLE_ID).pro.monthly
+PRODUCT_ID_YEARLY = $(APP_BUNDLE_ID).pro.yearly
+SUBSCRIPTION_GROUP_ID = 21580001
+
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1

@@ -1,0 +1,4 @@
+#include "AppConfig.xcconfig"
+// Mock challenge participants are visible in Debug/TestFlight builds only.
+CHALLENGES_PREVIEW = YES
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG CHALLENGES_PREVIEW

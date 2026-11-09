@@ -1,0 +1,5 @@
+#include "AppConfig.xcconfig"
+// TestFlight builds use Release. Set to NO for the App Store submission
+// (no fake leaderboards until the real challenge server exists — App Review 2.1/2.3).
+CHALLENGES_PREVIEW = YES
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = CHALLENGES_PREVIEW

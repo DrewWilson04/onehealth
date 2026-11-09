@@ -1,0 +1,21 @@
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.xcodeproj/
+!*.xcodeproj/project.pbxproj
+.swiftpm/
+.build/
+Packages/*/Package.resolved
+
+# Generated Xcode project (run `xcodegen` in /ios)
+ios/PulseBoard.xcodeproj/
+
+# Web
+node_modules/
+web/dist/
+web/dev-dist/
+web/coverage/
+*.log

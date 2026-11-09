@@ -1,0 +1,359 @@
+{
+  "description": "Shared normalizer fixtures. `raw` mirrors an export.xml <Record> (string attributes). `expected` is the canonical Sample, or null when the record must be dropped. Consumed by ios/Packages/PulseCore/Tests and web/src/core/__tests__.",
+  "cases": [
+    {
+      "name": "steps from iPhone",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierStepCount",
+        "value": "120",
+        "unit": "count",
+        "startDate": "2024-03-10 08:00:00 -0500",
+        "endDate": "2024-03-10 08:10:00 -0500",
+        "sourceName": "Alex's iPhone",
+        "sourceBundleId": "com.apple.health.81A2",
+        "device": "<<HKDevice: 0x283b0d2c0>, name:iPhone, manufacturer:Apple Inc., model:iPhone, hardware:iPhone15,2, software:17.4>",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "steps",
+        "value": 120,
+        "unit": "count",
+        "start": "2024-03-10T13:00:00Z",
+        "end": "2024-03-10T13:10:00Z",
+        "isManual": false,
+        "vendor": "iPhone",
+        "deviceModel": "iPhone",
+        "deviceHardware": "iPhone15,2"
+      }
+    },
+    {
+      "name": "distance km to meters",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierDistanceWalkingRunning",
+        "value": "1.25",
+        "unit": "km",
+        "startDate": "2024-03-10 08:00:00 +0000",
+        "endDate": "2024-03-10 08:15:00 +0000",
+        "sourceName": "Connect",
+        "sourceBundleId": "com.garmin.connect.mobile",
+        "device": "<<HKDevice: 0x2>, name:Forerunner 965, manufacturer:Garmin, model:Forerunner 965>",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "distanceWalkingRunning",
+        "value": 1250,
+        "unit": "m",
+        "start": "2024-03-10T08:00:00Z",
+        "end": "2024-03-10T08:15:00Z",
+        "isManual": false,
+        "vendor": "garmin",
+        "deviceModel": "Forerunner 965"
+      }
+    },
+    {
+      "name": "distance miles",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierDistanceWalkingRunning",
+        "value": "2",
+        "unit": "mi",
+        "startDate": "2024-03-10 08:00:00 +0000",
+        "endDate": "2024-03-10 08:30:00 +0000",
+        "sourceName": "Alex's Apple Watch",
+        "sourceBundleId": "com.apple.health.9F1C",
+        "device": "<<HKDevice: 0x3>, name:Apple Watch, manufacturer:Apple Inc., model:Watch, hardware:Watch7,5, software:10.3>",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "distanceWalkingRunning",
+        "value": 3218.688,
+        "unit": "m",
+        "start": "2024-03-10T08:00:00Z",
+        "end": "2024-03-10T08:30:00Z",
+        "isManual": false,
+        "vendor": "appleWatch",
+        "deviceModel": "Watch"
+      }
+    },
+    {
+      "name": "active energy kJ to kcal",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierActiveEnergyBurned",
+        "value": "418.4",
+        "unit": "kJ",
+        "startDate": "2024-03-10 08:00:00 +0000",
+        "endDate": "2024-03-10 08:01:00 +0000",
+        "sourceName": "WHOOP",
+        "sourceBundleId": "com.whoop.iphone",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "activeEnergy",
+        "value": 100,
+        "unit": "kcal",
+        "start": "2024-03-10T08:00:00Z",
+        "end": "2024-03-10T08:01:00Z",
+        "isManual": false,
+        "vendor": "whoop"
+      }
+    },
+    {
+      "name": "blood oxygen fraction to percent",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierOxygenSaturation",
+        "value": "0.97",
+        "unit": "%",
+        "startDate": "2024-03-10 03:12:00 +0000",
+        "endDate": "2024-03-10 03:12:00 +0000",
+        "sourceName": "Alex's Apple Watch",
+        "sourceBundleId": "com.apple.health.9F1C",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "oxygenSaturation",
+        "value": 97,
+        "unit": "%",
+        "start": "2024-03-10T03:12:00Z",
+        "end": "2024-03-10T03:12:00Z",
+        "isManual": false,
+        "vendor": "appleWatch"
+      }
+    },
+    {
+      "name": "body mass pounds, manually entered",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierBodyMass",
+        "value": "180",
+        "unit": "lb",
+        "startDate": "2024-03-10 07:00:00 +0000",
+        "endDate": "2024-03-10 07:00:00 +0000",
+        "sourceName": "Health",
+        "sourceBundleId": "com.apple.Health",
+        "metadata": {
+          "HKWasUserEntered": "1"
+        }
+      },
+      "expected": {
+        "type": "bodyMass",
+        "value": 81.6466266,
+        "unit": "kg",
+        "start": "2024-03-10T07:00:00Z",
+        "end": "2024-03-10T07:00:00Z",
+        "isManual": true,
+        "vendor": "other"
+      }
+    },
+    {
+      "name": "body temperature fahrenheit",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierBodyTemperature",
+        "value": "98.6",
+        "unit": "degF",
+        "startDate": "2024-03-10 07:00:00 +0000",
+        "endDate": "2024-03-10 07:00:00 +0000",
+        "sourceName": "Withings",
+        "sourceBundleId": "com.withings.wiScaleNG",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "bodyTemperature",
+        "value": 37,
+        "unit": "degC",
+        "start": "2024-03-10T07:00:00Z",
+        "end": "2024-03-10T07:00:00Z",
+        "isManual": false,
+        "vendor": "withings"
+      }
+    },
+    {
+      "name": "water fluid ounces",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierDietaryWater",
+        "value": "16",
+        "unit": "fl_oz_us",
+        "startDate": "2024-03-10 12:00:00 +0000",
+        "endDate": "2024-03-10 12:00:00 +0000",
+        "sourceName": "WaterMinder",
+        "sourceBundleId": "com.funnmedia.waterminder",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "water",
+        "value": 473.176473,
+        "unit": "mL",
+        "start": "2024-03-10T12:00:00Z",
+        "end": "2024-03-10T12:00:00Z",
+        "isManual": false,
+        "vendor": "other"
+      }
+    },
+    {
+      "name": "sleep stage from export string",
+      "raw": {
+        "type": "HKCategoryTypeIdentifierSleepAnalysis",
+        "value": "HKCategoryValueSleepAnalysisAsleepDeep",
+        "startDate": "2024-03-10 01:00:00 +0000",
+        "endDate": "2024-03-10 01:40:00 +0000",
+        "sourceName": "Oura",
+        "sourceBundleId": "com.ouraring.oura",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "sleep",
+        "value": 4,
+        "unit": "stage",
+        "start": "2024-03-10T01:00:00Z",
+        "end": "2024-03-10T01:40:00Z",
+        "isManual": false,
+        "vendor": "oura"
+      }
+    },
+    {
+      "name": "legacy asleep value",
+      "raw": {
+        "type": "HKCategoryTypeIdentifierSleepAnalysis",
+        "value": "HKCategoryValueSleepAnalysisAsleep",
+        "startDate": "2019-03-10 01:00:00 +0000",
+        "endDate": "2019-03-10 07:00:00 +0000",
+        "sourceName": "Sleep Cycle",
+        "sourceBundleId": "com.lexwarelabs.goodmorning",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "sleep",
+        "value": 1,
+        "unit": "stage",
+        "start": "2019-03-10T01:00:00Z",
+        "end": "2019-03-10T07:00:00Z",
+        "isManual": false,
+        "vendor": "other"
+      }
+    },
+    {
+      "name": "hrv milliseconds",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierHeartRateVariabilitySDNN",
+        "value": "48.2",
+        "unit": "ms",
+        "startDate": "2024-03-10 04:00:00 +0000",
+        "endDate": "2024-03-10 04:01:00 +0000",
+        "sourceName": "Alex's Apple Watch",
+        "sourceBundleId": "com.apple.health.9F1C",
+        "device": "<<HKDevice: 0x3>, name:Apple Watch, manufacturer:Apple Inc., model:Watch, hardware:Watch7,5, software:10.3>",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "hrv",
+        "value": 48.2,
+        "unit": "ms",
+        "start": "2024-03-10T04:00:00Z",
+        "end": "2024-03-10T04:01:00Z",
+        "isManual": false,
+        "vendor": "appleWatch"
+      }
+    },
+    {
+      "name": "VO2 max export unit",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierVO2Max",
+        "value": "45.3",
+        "unit": "mL/min·kg",
+        "startDate": "2024-03-10 04:00:00 +0000",
+        "endDate": "2024-03-10 04:00:00 +0000",
+        "sourceName": "Alex's Apple Watch",
+        "sourceBundleId": "com.apple.health.9F1C",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "vo2Max",
+        "value": 45.3,
+        "unit": "mL/(kg·min)",
+        "start": "2024-03-10T04:00:00Z",
+        "end": "2024-03-10T04:00:00Z",
+        "isManual": false,
+        "vendor": "appleWatch"
+      }
+    },
+    {
+      "name": "blood glucose mmol/L",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierBloodGlucose",
+        "value": "5.5",
+        "unit": "mmol<180.15588000005408>/L",
+        "startDate": "2024-03-10 04:00:00 +0000",
+        "endDate": "2024-03-10 04:00:00 +0000",
+        "sourceName": "Dexcom G7",
+        "sourceBundleId": "com.dexcom.g7",
+        "metadata": {}
+      },
+      "expected": {
+        "type": "bloodGlucose",
+        "value": 99.0858,
+        "unit": "mg/dL",
+        "start": "2024-03-10T04:00:00Z",
+        "end": "2024-03-10T04:00:00Z",
+        "isManual": false,
+        "vendor": "other"
+      }
+    },
+    {
+      "name": "unknown type dropped",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierUnderwaterDepthMadeUp",
+        "value": "3",
+        "unit": "m",
+        "startDate": "2024-03-10 04:00:00 +0000",
+        "endDate": "2024-03-10 04:00:00 +0000",
+        "sourceName": "X",
+        "sourceBundleId": "x",
+        "metadata": {}
+      },
+      "expected": null,
+      "expectedIssue": "unknownType"
+    },
+    {
+      "name": "unknown unit dropped",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierStepCount",
+        "value": "3",
+        "unit": "furlong",
+        "startDate": "2024-03-10 04:00:00 +0000",
+        "endDate": "2024-03-10 04:00:00 +0000",
+        "sourceName": "X",
+        "sourceBundleId": "x",
+        "metadata": {}
+      },
+      "expected": null,
+      "expectedIssue": "unknownUnit"
+    },
+    {
+      "name": "end before start dropped",
+      "raw": {
+        "type": "HKQuantityTypeIdentifierStepCount",
+        "value": "3",
+        "unit": "count",
+        "startDate": "2024-03-10 05:00:00 +0000",
+        "endDate": "2024-03-10 04:00:00 +0000",
+        "sourceName": "X",
+        "sourceBundleId": "x",
+        "metadata": {}
+      },
+      "expected": null,
+      "expectedIssue": "invalidInterval"
+    }
+  ],
+  "stableId": {
+    "description": "FNV-1a 64-bit over 'type|startEpoch|endEpoch|value(%.6f)|sourceKey' prefixed with 'x'. Both platforms must produce identical ids for export.xml records (which have no UUID).",
+    "raw": {
+      "type": "HKQuantityTypeIdentifierStepCount",
+      "value": "120",
+      "unit": "count",
+      "startDate": "2024-03-10 08:00:00 -0500",
+      "endDate": "2024-03-10 08:10:00 -0500",
+      "sourceName": "Alex's iPhone",
+      "sourceBundleId": "com.apple.health.81A2",
+      "metadata": {}
+    },
+    "key": "HKQuantityTypeIdentifierStepCount|1710075600|1710076200|120.000000|com.apple.health.81A2",
+    "expected": "x434eda71a2be4a1a"
+  }
+}

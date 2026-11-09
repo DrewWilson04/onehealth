@@ -1,0 +1,445 @@
+{
+  "description": "Multi-source overlap fixtures for deduplication. Times are ISO-8601 UTC. `priority` is the user's ordered source keys (empty = vendor heuristic: Apple Watch > wearables > iPhone > other apps). Consumed by iOS and web tests.",
+  "sources": {
+    "watch": {
+      "sourceName": "Alex's Apple Watch",
+      "sourceBundleId": "com.apple.health.9F1C",
+      "deviceModel": "Watch",
+      "deviceManufacturer": "Apple Inc."
+    },
+    "iphone": {
+      "sourceName": "Alex's iPhone",
+      "sourceBundleId": "com.apple.health.81A2",
+      "deviceModel": "iPhone",
+      "deviceManufacturer": "Apple Inc."
+    },
+    "garmin": {
+      "sourceName": "Connect",
+      "sourceBundleId": "com.garmin.connect.mobile",
+      "deviceModel": "Forerunner 965",
+      "deviceManufacturer": "Garmin"
+    },
+    "oura": {
+      "sourceName": "Oura",
+      "sourceBundleId": "com.ouraring.oura",
+      "deviceModel": "Oura Ring Gen3",
+      "deviceManufacturer": "Oura"
+    },
+    "whoop": {
+      "sourceName": "WHOOP",
+      "sourceBundleId": "com.whoop.iphone",
+      "deviceManufacturer": "WHOOP"
+    },
+    "strava": {
+      "sourceName": "Strava",
+      "sourceBundleId": "com.strava.stravaride"
+    }
+  },
+  "cumulative": [
+    {
+      "name": "watch and iphone steps overlap, default priority",
+      "timeZone": "UTC",
+      "priority": [],
+      "samples": [
+        {
+          "id": "s1",
+          "type": "steps",
+          "value": 600,
+          "start": "2024-03-10T08:00:00Z",
+          "end": "2024-03-10T09:00:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "s2",
+          "type": "steps",
+          "value": 500,
+          "start": "2024-03-10T08:00:00Z",
+          "end": "2024-03-10T08:30:00Z",
+          "source": "iphone"
+        },
+        {
+          "id": "s3",
+          "type": "steps",
+          "value": 400,
+          "start": "2024-03-10T08:30:00Z",
+          "end": "2024-03-10T09:30:00Z",
+          "source": "iphone"
+        }
+      ],
+      "expectedTotal": 800,
+      "naiveSum": 1500,
+      "expectedDaily": {
+        "2024-03-10": 800
+      }
+    },
+    {
+      "name": "user prefers iPhone",
+      "timeZone": "UTC",
+      "priority": [
+        "com.apple.health.81A2"
+      ],
+      "samples": [
+        {
+          "id": "s1",
+          "type": "steps",
+          "value": 600,
+          "start": "2024-03-10T08:00:00Z",
+          "end": "2024-03-10T09:00:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "s2",
+          "type": "steps",
+          "value": 500,
+          "start": "2024-03-10T08:00:00Z",
+          "end": "2024-03-10T08:30:00Z",
+          "source": "iphone"
+        },
+        {
+          "id": "s3",
+          "type": "steps",
+          "value": 400,
+          "start": "2024-03-10T08:30:00Z",
+          "end": "2024-03-10T09:30:00Z",
+          "source": "iphone"
+        }
+      ],
+      "expectedTotal": 900,
+      "expectedDaily": {
+        "2024-03-10": 900
+      }
+    },
+    {
+      "name": "garmin + watch + whoop energy, three-way overlap",
+      "timeZone": "UTC",
+      "priority": [],
+      "samples": [
+        {
+          "id": "e1",
+          "type": "activeEnergy",
+          "value": 120,
+          "start": "2024-03-10T10:00:00Z",
+          "end": "2024-03-10T11:00:00Z",
+          "source": "garmin"
+        },
+        {
+          "id": "e2",
+          "type": "activeEnergy",
+          "value": 60,
+          "start": "2024-03-10T10:30:00Z",
+          "end": "2024-03-10T11:00:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "e3",
+          "type": "activeEnergy",
+          "value": 300,
+          "start": "2024-03-10T09:00:00Z",
+          "end": "2024-03-10T12:00:00Z",
+          "source": "whoop"
+        }
+      ],
+      "expectedTotal": 320,
+      "expectedDaily": {
+        "2024-03-10": 320
+      },
+      "notes": "09-10 whoop 100; 10-10:30 garmin beats whoop (same wearable rank, tie broken by source key) 60; 10:30-11 watch 60; 11-12 whoop 100."
+    },
+    {
+      "name": "sample across midnight, UTC",
+      "timeZone": "UTC",
+      "priority": [],
+      "samples": [
+        {
+          "id": "m1",
+          "type": "steps",
+          "value": 300,
+          "start": "2024-03-10T23:30:00Z",
+          "end": "2024-03-11T00:30:00Z",
+          "source": "garmin"
+        }
+      ],
+      "expectedTotal": 300,
+      "expectedDaily": {
+        "2024-03-10": 150,
+        "2024-03-11": 150
+      }
+    },
+    {
+      "name": "sample across UTC midnight but same local day (New York)",
+      "timeZone": "America/New_York",
+      "priority": [],
+      "samples": [
+        {
+          "id": "m1",
+          "type": "steps",
+          "value": 300,
+          "start": "2024-03-10T23:30:00Z",
+          "end": "2024-03-11T00:30:00Z",
+          "source": "garmin"
+        }
+      ],
+      "expectedTotal": 300,
+      "expectedDaily": {
+        "2024-03-10": 300
+      }
+    }
+  ],
+  "sleep": [
+    {
+      "name": "watch stages + oura fills after watch died + iphone in bed",
+      "timeZone": "UTC",
+      "priority": [],
+      "samples": [
+        {
+          "id": "w1",
+          "type": "sleep",
+          "value": 3,
+          "start": "2024-03-10T23:00:00Z",
+          "end": "2024-03-10T23:30:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "w2",
+          "type": "sleep",
+          "value": 4,
+          "start": "2024-03-10T23:30:00Z",
+          "end": "2024-03-11T00:30:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "w3",
+          "type": "sleep",
+          "value": 2,
+          "start": "2024-03-11T00:30:00Z",
+          "end": "2024-03-11T01:00:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "w4",
+          "type": "sleep",
+          "value": 3,
+          "start": "2024-03-11T01:00:00Z",
+          "end": "2024-03-11T03:00:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "w5",
+          "type": "sleep",
+          "value": 5,
+          "start": "2024-03-11T03:00:00Z",
+          "end": "2024-03-11T04:00:00Z",
+          "source": "watch"
+        },
+        {
+          "id": "o1",
+          "type": "sleep",
+          "value": 3,
+          "start": "2024-03-10T22:50:00Z",
+          "end": "2024-03-11T04:00:00Z",
+          "source": "oura"
+        },
+        {
+          "id": "o2",
+          "type": "sleep",
+          "value": 4,
+          "start": "2024-03-11T04:00:00Z",
+          "end": "2024-03-11T06:00:00Z",
+          "source": "oura"
+        },
+        {
+          "id": "o3",
+          "type": "sleep",
+          "value": 2,
+          "start": "2024-03-11T06:00:00Z",
+          "end": "2024-03-11T06:30:00Z",
+          "source": "oura"
+        },
+        {
+          "id": "p1",
+          "type": "sleep",
+          "value": 0,
+          "start": "2024-03-10T22:30:00Z",
+          "end": "2024-03-11T06:45:00Z",
+          "source": "iphone"
+        }
+      ],
+      "expected": {
+        "nights": 1,
+        "day": "2024-03-11",
+        "asleepMinutes": 400,
+        "awakeMinutes": 60,
+        "inBedMinutes": 495,
+        "stageMinutes": {
+          "core": 160,
+          "deep": 180,
+          "rem": 60,
+          "awake": 60
+        },
+        "primarySource": "com.apple.health.9F1C",
+        "hasStages": true
+      },
+      "naiveAsleepSum": 700
+    },
+    {
+      "name": "same night, user prefers Oura",
+      "timeZone": "UTC",
+      "priority": [
+        "com.ouraring.oura"
+      ],
+      "samplesFrom": 0,
+      "expected": {
+        "nights": 1,
+        "day": "2024-03-11",
+        "asleepMinutes": 430,
+        "awakeMinutes": 30,
+        "inBedMinutes": 495,
+        "stageMinutes": {
+          "core": 310,
+          "deep": 120,
+          "awake": 30
+        },
+        "primarySource": "com.ouraring.oura",
+        "hasStages": true
+      }
+    }
+  ],
+  "workouts": [
+    {
+      "name": "same run from watch, garmin and strava + unrelated evening workout",
+      "priority": [],
+      "samples": [
+        {
+          "id": "w-watch",
+          "type": "workout",
+          "value": 45,
+          "start": "2024-03-10T07:00:00Z",
+          "end": "2024-03-10T07:45:00Z",
+          "source": "watch",
+          "metadata": {
+            "activityType": "running",
+            "energyKcal": "400.0"
+          }
+        },
+        {
+          "id": "w-garmin",
+          "type": "workout",
+          "value": 46,
+          "start": "2024-03-10T07:00:00Z",
+          "end": "2024-03-10T07:46:00Z",
+          "source": "garmin",
+          "metadata": {
+            "activityType": "running",
+            "energyKcal": "420.0",
+            "distanceM": "7000.0"
+          }
+        },
+        {
+          "id": "w-strava",
+          "type": "workout",
+          "value": 43,
+          "start": "2024-03-10T07:01:00Z",
+          "end": "2024-03-10T07:44:00Z",
+          "source": "strava",
+          "metadata": {
+            "activityType": "running",
+            "distanceM": "6990.0"
+          }
+        },
+        {
+          "id": "w-evening",
+          "type": "workout",
+          "value": 30,
+          "start": "2024-03-10T18:00:00Z",
+          "end": "2024-03-10T18:30:00Z",
+          "source": "watch",
+          "metadata": {
+            "activityType": "traditionalStrengthTraining"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": "w-watch",
+          "mergedFrom": "w-garmin,w-strava",
+          "energyKcal": "400.0",
+          "distanceM": "7000.0"
+        },
+        {
+          "id": "w-evening",
+          "mergedFrom": null
+        }
+      ]
+    },
+    {
+      "name": "back-to-back workouts are not merged",
+      "priority": [],
+      "samples": [
+        {
+          "id": "a",
+          "type": "workout",
+          "value": 30,
+          "start": "2024-03-10T07:00:00Z",
+          "end": "2024-03-10T07:30:00Z",
+          "source": "watch",
+          "metadata": {
+            "activityType": "running"
+          }
+        },
+        {
+          "id": "b",
+          "type": "workout",
+          "value": 30,
+          "start": "2024-03-10T07:25:00Z",
+          "end": "2024-03-10T07:55:00Z",
+          "source": "garmin",
+          "metadata": {
+            "activityType": "cycling"
+          }
+        }
+      ],
+      "expected": [
+        {
+          "id": "a",
+          "mergedFrom": null
+        },
+        {
+          "id": "b",
+          "mergedFrom": null
+        }
+      ]
+    }
+  ],
+  "discrete": [
+    {
+      "name": "most samples wins without preference",
+      "priority": [],
+      "preferred": null,
+      "counts": {
+        "watch": 5,
+        "whoop": 10
+      },
+      "expectedSource": "com.whoop.iphone"
+    },
+    {
+      "name": "preferred source wins",
+      "priority": [],
+      "preferred": "com.apple.health.9F1C",
+      "counts": {
+        "watch": 5,
+        "whoop": 10
+      },
+      "expectedSource": "com.apple.health.9F1C"
+    },
+    {
+      "name": "tie broken by priority",
+      "priority": [],
+      "preferred": null,
+      "counts": {
+        "iphone": 4,
+        "watch": 4
+      },
+      "expectedSource": "com.apple.health.9F1C"
+    }
+  ]
+}
