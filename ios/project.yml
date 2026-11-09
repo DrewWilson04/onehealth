@@ -92,6 +92,7 @@ targets:
         PBProductMonthly: $(PRODUCT_ID_MONTHLY)
         PBProductYearly: $(PRODUCT_ID_YEARLY)
         PBSubscriptionGroupID: $(SUBSCRIPTION_GROUP_ID)
+        PBPrivacyPolicyURL: $(PRIVACY_POLICY_URL)
     scheme:
       storeKitConfiguration: PulseBoard.storekit
       gatherCoverageData: true

@@ -57,3 +57,24 @@ final class ManualEntryTests: XCTestCase {
         XCTAssertEqual(cap.progress(600), 0.5)
     }
 }
+
+final class EntitlementTests: XCTestCase {
+    func testFreeVsProMatchesSpec() { MainActor.assumeIsolated {
+        let free = StaticEntitlements(isPro: false)
+        for f in [Feature.coreDashboard, .trends30Days, .basicGoals, .streaks, .manualLogging, .readinessScore, .sleepScore, .joinChallenges] {
+            XCTAssertTrue(free.isEnabled(f), "\(f) is free")
+        }
+        for f in [Feature.fullHistoryTrends, .customWidgetGrid, .homeScreenWidgets, .lockScreenWidgets, .export,
+                  .strainScore, .energyScore, .fullScoreHistory, .aiInsights, .createCustomChallenges] {
+            XCTAssertFalse(free.isEnabled(f), "\(f) is Pro")
+            XCTAssertTrue(StaticEntitlements(isPro: true).isEnabled(f))
+        }
+        XCTAssertFalse(TrendRange.month.requiresPro)
+        XCTAssertTrue(TrendRange.sixMonths.requiresPro)
+    } }
+
+    func testYearlySavings() {
+        XCTAssertEqual(ProPlan.yearlySavingsPercent(monthly: 2.99, yearly: 29.99), 16)
+        XCTAssertEqual(ProPlan.yearlySavingsPercent(monthly: 2.99, yearly: 40), 0)
+    }
+}

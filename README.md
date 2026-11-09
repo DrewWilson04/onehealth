@@ -71,11 +71,48 @@ If automatic signing complains about the App Group or iCloud container, open **S
 - **Command line (macOS):** `cd ios/Packages/PulseCore && swift test`
 - **Linux / CI:** `docker run --rm -v "$PWD":/repo -w /repo/ios/Packages/PulseCore swift:6.2 swift test`
 
-### StoreKit testing
-Covered in Milestone 7.
+### StoreKit testing (local)
+`ios/PulseBoard.storekit` defines one subscription group, **PulseBoard Pro**:
 
-### TestFlight
-Covered in Milestone 7 / release readiness.
+| Product ID | Price | Intro offer |
+|---|---|---|
+| `pulseboard.pro.monthly` | $2.99 / month | 1 month free |
+| `pulseboard.pro.yearly` | $29.99 / year | 1 month free |
+
+- **Scheme.** The scheme already points at the file (`project.yml` → `storeKitConfiguration`). If needed, check Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration.
+- **Test a purchase.** Run the app, open Settings → Upgrade to Pro → choose a plan, and purchase. No real money is charged.
+- **Transaction Manager.** Use Debug → StoreKit → Manage Transactions to refund, expire, or clear purchase history (clearing resets intro-offer eligibility).
+- **Fast renewals.** Editor → Subscription Renewal Rate → "Every 30 seconds" lets you watch renewals and expiry.
+- **Debug toggle.** Debug builds have Settings → Subscription → **Simulate Pro** for quick UI work.
+
+All gating goes through `EntitlementService` (PulseCore) and is implemented by `EntitlementManager` (PulseKit, StoreKit 2):
+- It uses `Transaction.currentEntitlements` and `Transaction.updates`.
+- Transactions are verified on-device; there is no receipt server.
+
+### App Store Connect setup (before TestFlight)
+1. **Create the app.** In App Store Connect → My Apps → **+**, use bundle ID `<prefix>.pulseboard`.
+2. **Create the subscriptions.** Go to Monetization → Subscriptions and create the group **PulseBoard Pro** with both products.
+   - The product IDs must match the table above, or change them in `AppConfig.xcconfig` and `PulseBoard.storekit`.
+   - Set the prices, and add an **Introductory Offer → Free → 1 month** to each.
+3. **Privacy.**
+   - Enter a hosted privacy-policy URL. A placeholder lives in `docs/privacy-policy.md` and is served by the web app at `/privacy.html`.
+   - Set `PRIVACY_POLICY_URL` in `AppConfig.xcconfig`.
+   - App Privacy questionnaire: **Data Not Collected**, because nothing leaves the device in this phase.
+4. **Paid Apps agreement.** Accept it in Business, otherwise products won't load in TestFlight.
+5. **CloudKit.** Deploy the CloudKit schema to Production (see above).
+
+### TestFlight upload
+1. In `AppConfig.xcconfig`, bump `CURRENT_PROJECT_VERSION`. Bump `MARKETING_VERSION` for new versions.
+2. In Xcode, select **Any iOS Device (arm64)** → Product → **Archive**.
+3. In the Organizer, choose **Distribute App → App Store Connect → Upload**. Keep automatic signing.
+4. In App Store Connect → TestFlight, wait for processing.
+   - Answer export compliance. `ITSAppUsesNonExemptEncryption = NO` is already set.
+   - Add an **Internal** testing group, or an **External** group (which needs Beta App Review) and invite friends by email or public link.
+5. Testers install **TestFlight**, accept, and install.
+   - Subscriptions in TestFlight use the sandbox and are free.
+   - Renewals are accelerated: a 1-month period lasts about 5 minutes.
+
+Before submitting to the **App Store**, set `CHALLENGES_PREVIEW = NO` in `Config/Release.xcconfig`. Mock challenge participants are for TestFlight only.
 
 ---
 
@@ -91,7 +128,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 4. ✅ Goals, streaks, widgets
 5. ✅ CloudKit settings sync
 6. ✅ Derived scores and gap handling
-7. StoreKit 2 and paywall
+7. ✅ StoreKit 2 and paywall
 8. CSV/PDF export
 9. Insights stats engine + Apple Intelligence layer
 10. Challenge abstractions + mock UI

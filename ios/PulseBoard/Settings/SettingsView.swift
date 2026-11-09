@@ -5,10 +5,17 @@ import PulseKit
 struct SettingsView: View {
     @Environment(AppServices.self) private var services
     @Environment(IngestionStatus.self) private var status
+    @Environment(EntitlementManager.self) private var entitlements
     @State private var confirmReset = false
 
     var body: some View {
         List {
+            Section {
+                NavigationLink { SubscriptionSettingsView() } label: {
+                    Label(entitlements.isPro ? "\(PulseKitConfig.appName) Pro" : "Upgrade to Pro", systemImage: "star.circle.fill")
+                }
+            }
+
             Section("Personalize") {
                 NavigationLink { GoalsView() } label: { Label("Goals & streaks", systemImage: "target") }
                 NavigationLink { UnitsSettingsView() } label: { Label("Units", systemImage: "ruler") }
