@@ -13,7 +13,8 @@ The name is a placeholder. To rename the app, change `APP_NAME` in `ios/Config/A
   Packages/PulseCore   pure-Swift algorithms (normalize, dedup, aggregate, scores, stats) + tests
   Packages/PulseKit    Apple-framework adapters (HealthKit, SwiftData, CloudKit, StoreKit, …)
 /web     PWA companion (imports export.zip, IndexedDB, same scores)
-/docs    shared specs: schema, metrics, score formulas, challenge scoring, fixtures
+/docs    shared specs: schema, metrics, score formulas, insights, challenge scoring, fixtures
+/.github CI: PulseCore Swift tests, web tests + GitHub Pages deploy
 ```
 
 The algorithms in `PulseCore` and `web/src/core` are tested against the same JSON fixtures in `docs/fixtures`, which keeps iOS and web consistent.
@@ -117,7 +118,22 @@ Before submitting to the **App Store**, set `CHALLENGES_PREVIEW = NO` in `Config
 ---
 
 ## Web
-See [`web/README.md`](web/README.md) (Milestone 12).
+Quick start:
+```sh
+cd web && npm ci && npm run dev
+```
+
+- Import an Apple Health `export.zip`. It is processed entirely in the browser and nothing is uploaded.
+- Deploy as static files to Cloudflare Pages or GitHub Pages; there's a ready-made workflow in `.github/workflows/web.yml`.
+- Full details are in [`web/README.md`](web/README.md).
+
+## Tests & CI
+| Suite | Command | What it covers |
+|---|---|---|
+| PulseCore (Swift) | `cd ios/Packages/PulseCore && swift test` | Normalizer, dedup (multi-source overlap), aggregation and trends, streaks, derived scores and gap handling, Activity Score, insights stats engine, CSV export, CloudKit key policy, entitlement matrix |
+| Web (TypeScript) | `cd web && npm test` | The same shared fixtures (parity with iOS), ZIP/ZIP64 reader, streaming `export.xml` importer, bounded memory on a 144 MB export |
+
+CI runs both suites (`.github/workflows/pulsecore.yml` and `web.yml`). The shared expected values live in `docs/fixtures/*.json`.
 
 ---
 
@@ -133,7 +149,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 9. ✅ Insights stats engine + Apple Intelligence layer
 10. ✅ Challenge abstractions + mock UI
 11. ✅ Apple Watch app + complications
-12. Web importer, dashboard, static deploy
+12. ✅ Web importer, dashboard, static deploy
 
 ## Deviations from the original spec (Apple rules or technical limits)
 

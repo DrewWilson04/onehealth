@@ -1,0 +1,17 @@
+name: PulseCore (Swift) tests
+
+on:
+  push:
+    paths: ['ios/Packages/PulseCore/**', 'docs/fixtures/**', '.github/workflows/pulsecore.yml']
+  pull_request:
+    paths: ['ios/Packages/PulseCore/**', 'docs/fixtures/**']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+        working-directory: ios/Packages/PulseCore
