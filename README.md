@@ -132,7 +132,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 8. ✅ CSV/PDF export
 9. ✅ Insights stats engine + Apple Intelligence layer
 10. ✅ Challenge abstractions + mock UI
-11. Apple Watch app + complications
+11. ✅ Apple Watch app + complications
 12. Web importer, dashboard, static deploy
 
 ## Deviations from the original spec (Apple rules or technical limits)

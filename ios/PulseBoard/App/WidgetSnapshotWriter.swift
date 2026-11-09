@@ -40,5 +40,6 @@ enum WidgetSnapshotWriter {
                                   latestHeartRate: hr, challenge: challenge ?? existing?.challenge)
         AppGroup.writeSnapshot(snap)
         WidgetCenter.shared.reloadAllTimelines()
+        WatchBridge.shared.send(snap)
     }
 }

@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         PulseKitConfig.bootstrap()
+        WatchBridge.shared.activate()
         registerBackgroundTasks()
         // HealthKit background delivery requires observer queries to be set up
         // at launch, including background launches triggered by HealthKit.
