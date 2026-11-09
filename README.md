@@ -77,7 +77,7 @@ See [`web/README.md`](web/README.md) (Milestone 12).
 
 ## Milestones
 1. ✅ HealthKit ingestion, schema, backfill, multi-source dedup
-2. Core dashboard and charts
+2. ✅ Core dashboard and charts
 3. Manual entry with HealthKit write-back
 4. Goals, streaks, widgets
 5. CloudKit settings sync

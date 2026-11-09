@@ -96,20 +96,21 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
         let period: DailyAggregate.Period = hourly ? .hour : .day
 
         if m.kind == .cumulative {
-            var opts: HKStatisticsOptions = [.cumulativeSum]
-            if case .preferred = policy { opts.insert(.separateBySource) }
+            // `.separateBySource` keeps the merged `sumQuantity()` (Apple Health
+            // priority) and also lets us attribute the day ("via Garmin").
+            let opts: HKStatisticsOptions = [.cumulativeSum, .separateBySource]
             let coll = try await store.statisticsCollection(of: qt, predicate: pred, options: opts, anchor: anchor, interval: comps)
             var out: [DailyAggregate] = []
             coll.enumerateStatistics(from: interval.start, to: interval.end) { stats, _ in
                 var total = stats.sumQuantity()?.doubleValue(for: unit)
                 var primary = stats.sources?.max(by: { a, b in
                     (stats.sumQuantity(for: a)?.doubleValue(for: unit) ?? 0) < (stats.sumQuantity(for: b)?.doubleValue(for: unit) ?? 0)
-                })?.bundleIdentifier
+                }).map { SourceRef(bundleId: $0.bundleIdentifier, name: $0.name).attribution }
                 if case .preferred(let key) = policy,
                    let src = stats.sources?.first(where: { $0.bundleIdentifier == key || $0.name == key }),
                    let v = stats.sumQuantity(for: src)?.doubleValue(for: unit) {
                     total = v
-                    primary = src.bundleIdentifier
+                    primary = SourceRef(bundleId: src.bundleIdentifier, name: src.name).attribution
                 }
                 guard let total else { return }
                 let day = DayKey(stats.startDate, calendar: calendar)
@@ -143,7 +144,7 @@ public final class HealthKitProvider: DataProvider, @unchecked Sendable {
                     min: stats.minimumQuantity(for: pick).map { $0.doubleValue(for: unit) * scale },
                     max: stats.maximumQuantity(for: pick).map { $0.doubleValue(for: unit) * scale },
                     latest: stats.mostRecentQuantity(for: pick).map { $0.doubleValue(for: unit) * scale },
-                    count: 1, primarySource: pick.bundleIdentifier, sourcePolicy: policy.key))
+                    count: 1, primarySource: SourceRef(bundleId: pick.bundleIdentifier, name: pick.name).attribution, sourcePolicy: policy.key))
             }
             return out
         }
