@@ -19,6 +19,7 @@ final class AppServices {
     let ingestion: IngestionEngine
     let settings: SettingsStore
     let entitlements: EntitlementManager
+    let writer: HealthWriter
     let calendar: Calendar
 
     private var observersStarted = false
@@ -38,6 +39,7 @@ final class AppServices {
         ingestion = IngestionEngine(provider: provider, store: store, status: ingestionStatus, calendar: calendar)
         settings = SettingsStore(cloudKitContainer: PulseKitConfig.iCloudContainer)
         entitlements = EntitlementManager()
+        writer = HealthWriter(store: provider.store)
 
         let settings = self.settings
         let ingestion = self.ingestion
@@ -103,6 +105,24 @@ final class AppServices {
             await ingestion.configure(preferredSources: settings.preferredSources, priority: settings.sourcePriority)
             await ingestion.rebuild(metric)
         }
+    }
+
+    /// After a manual write: pull it back through the normal ingestion path
+    /// (so it is normalized, tagged isManual and aggregated like any sample).
+    func didWrite(_ metrics: [MetricID]) async {
+        for id in metrics {
+            if let m = MetricRegistry.type(id) { await ingestion.syncIncremental(m) }
+        }
+    }
+
+    /// Custom metrics are local-only: write straight to the cache.
+    func logCustom(_ def: CustomMetricDefinition, value: Double, at date: Date) async {
+        try? await store.upsert([def.sample(value: value, date: date)])
+        let day = DayKey(date, calendar: calendar)
+        let samples = (try? await store.samples(def.metricID, from: day.date(calendar), to: day.addingDays(1).date(calendar))) ?? []
+        let rows = Aggregator.daily(def.metricType, samples: samples, options: .init(calendar: calendar))
+        try? await store.upsert(rows)
+        ingestionStatus.dataRevision += 1
     }
 
     nonisolated static func scheduleBackgroundWork() {
